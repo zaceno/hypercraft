@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/assets/prism.css" />
+    <link rel="stylesheet" href="/assets/site.css" />
+    <title>Stateful Components - Hypercraft</title>
+    <meta name="description" content="Stateful components with hyperapp - how to do it, and when you might want to." />
+  </head>
+  <body>
+    <header>
+      <h1>Hypercraft</h1>
+      <p>Hyperapp tricks, patterns and pitfalls</p>
+      <ul class="nav">
+        <li><a href="/">Index</a></li>
+        <li><a href="/about">About</a></li>
+      </ul>
+    </header>
+    <main>
+    <article>
+      <h1>Stateful Components</h1>
+      <div class="meta">Stateful components with hyperapp - how to do it, and when you might want to.</div>
+      <h2 id="a-frequently-asked-question">A frequently asked question</h2>
+<p>Just about every new user of hyperapp at some point asks the question: &quot;How can I make
+components with local state?&quot;</p>
+<p>In React, for example, there are <em>object-components</em> with
+render methods, and <code>.setState()</code>. In Vue.js, every component has its <code>.props</code>. Such components encapsulate state and behavior locally, keeping it out of the rest of the app (because it&apos;s only relevant internally to the component). </p>
+<p>But Hyperapp&apos;s design is clear: there is one single state store, and components are purely functional. So components with local state are off the table ... right?</p>
+<p>The trick is to realize that a stateful component is essentially a simple <em>app</em>, exposing an interface for interacting with it from the outside. The interface is such that it allows for composing with other components in a larger app.</p>
+<h2 id="reusing-an-app-in-an-app-">Reusing an app ... in an app!</h2>
+<p>Let&apos;s begin with this, small simple gif-search app:</p>
+<div style="width: 150%; position: relative; left: -25%">
+<p data-height="600" data-theme-id="dark" data-slug-hash="WdLPBZ" data-default-tab="js,result" data-user="zaceno" data-embed-version="2" data-pen-title="gif search hyperapp" class="codepen">See the Pen <a href="https://codepen.io/zaceno/pen/WdLPBZ/">gif search hyperapp</a> by Zacharias Enochsson (<a href="https://codepen.io/zaceno">@zaceno</a>) on <a href="https://codepen.io">CodePen</a>.</p>
+<script async src="https://production-assets.codepen.io/assets/embed/ei.js"></script></div>
+
+
+<p>Imagine now you&apos;re working on some kind of larger social-app, where one feature is for a user to use a gif to diplay their mood. You&apos;d like to use the gif-search app you already built above, as the mechanism for finding and selecting the appropriate mood-gif.</p>
+<p>An simplified version of the app you&apos;d like to write, might then look like this:</p>
+<pre class="language-jsx"><code class="language-jsx">
+<span class="token function">app</span><span class="token punctuation">(</span>
+    <span class="token comment">//STATE</span>
+    <span class="token punctuation">{</span>
+        gif<span class="token punctuation">:</span> <span class="token keyword">null</span><span class="token punctuation">,</span>
+        selecting<span class="token punctuation">:</span> <span class="token boolean">false</span><span class="token punctuation">,</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+
+    <span class="token comment">//ACTIONS </span>
+    <span class="token punctuation">{</span>
+        select<span class="token punctuation">:</span> _ <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>selecting<span class="token punctuation">:</span> <span class="token boolean">true</span><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+
+        onselect<span class="token punctuation">:</span> url <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>
+            gif<span class="token punctuation">:</span> url<span class="token punctuation">,</span>
+            selecting<span class="token punctuation">:</span> <span class="token boolean">false</span><span class="token punctuation">,</span>
+        <span class="token punctuation">}</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+
+    <span class="token comment">//VIEW</span>
+    <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>main</span><span class="token punctuation">&gt;</span></span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>h1</span><span class="token punctuation">&gt;</span></span>I feel like<span class="token punctuation">:</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>h1</span><span class="token punctuation">&gt;</span></span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>img</span> <span class="token attr-name">src</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>state<span class="token punctuation">.</span>gif<span class="token punctuation">}</span></span> <span class="token punctuation">/&gt;</span></span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>br</span> <span class="token punctuation">/&gt;</span></span>
+            <span class="token punctuation">{</span>
+                state<span class="token punctuation">.</span>selecting
+                <span class="token operator">?</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>GifSearch</span> <span class="token attr-name">onselect</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>actions<span class="token punctuation">.</span>onselect<span class="token punctuation">}</span></span> <span class="token punctuation">/&gt;</span></span>
+                <span class="token punctuation">:</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>button</span> <span class="token attr-name">onclick</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>actions<span class="token punctuation">.</span>select<span class="token punctuation">}</span></span><span class="token punctuation">&gt;</span></span>Select GIF<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>button</span><span class="token punctuation">&gt;</span></span>
+            <span class="token punctuation">}</span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>main</span><span class="token punctuation">&gt;</span></span>
+    <span class="token punctuation">)</span><span class="token punctuation">,</span>
+
+    <span class="token comment">//CONTAINER</span>
+    document<span class="token punctuation">.</span>body
+<span class="token punctuation">)</span>
+</code></pre>
+<p>Even though the <code>&lt;GifSearch /&gt;</code> component doesn&apos;t exist yet, it&apos;s clear what we want to
+achieve:</p>
+<ol>
+<li>When the user clicks the &quot;Select GIF&quot;-button, we should render the gif search app.</li>
+<li>When the user clicks (or somehow &quot;selects&quot;) one of the gifs, we expect a callback, with the url to the selected gif.</li>
+<li>The newly selected gif is displayed. Simultaneously, the gif search dissapears. </li>
+</ol>
+<p>It is also clear that we don&apos;t expect to have to handle any of the search component&apos;s state or
+actions in the main app.</p>
+<p>The first step is to make sure that when we render <code>&lt;GifSearch /&gt;</code>, we start the search app and render it at that place in the DOM:</p>
+<pre class="language-js"><code class="language-js">
+<span class="token keyword">const</span> <span class="token function-variable function">GifSearch</span> <span class="token operator">=</span> props <span class="token operator">=&gt;</span> <span class="token function">h</span><span class="token punctuation">(</span><span class="token string">&apos;gif-search&apos;</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+    oncreate<span class="token punctuation">:</span> element <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token function">app</span><span class="token punctuation">(</span>
+            gifSearchState<span class="token punctuation">,</span>
+            gifSearchActions<span class="token punctuation">,</span>
+            gifSearchView<span class="token punctuation">,</span>
+            element<span class="token punctuation">,</span>
+        <span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+<p>With this, the <code>&lt;GifSearch /&gt;</code> component produces an <code>UnkonwnHTMLElement</code> in the DOM with the tag name <code>gif-search</code>. <em>When</em> the element is created, we initiate the search app with the element as it&apos;s container.</p>
+<p>Now, the question is what to do with the <code>onselect</code> property we pass to the <code>&lt;GifSearch /&gt;</code> component? We need to somehow make the search app is aware of the callback, and make use it to call back when the user selects a gif.</p>
+<p>Did you notice the generic <code>update</code> action in the gif-search app above?</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> actionDefinitions <span class="token operator">=</span> <span class="token punctuation">{</span>
+    update<span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> x<span class="token punctuation">,</span>
+    <span class="token operator">...</span>
+</code></pre>
+<p>... all it does is update the state with whatever partial-state you pass it as the argument. The search app uses it to set the state before and after performing the search. But since an app&apos;s actions are returned from the <code>app(...)</code> call, we have access to it, and can use it to inject the component&apos;s state with whatever props are passed from the main app -- in particular the <code>onselect</code> callback.</p>
+<pre class="language-js"><code class="language-js">
+<span class="token keyword">const</span> <span class="token function-variable function">GifSearch</span> <span class="token operator">=</span> props <span class="token operator">=&gt;</span> <span class="token function">h</span><span class="token punctuation">(</span><span class="token string">&apos;gif-search&apos;</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+    oncreate<span class="token punctuation">:</span> element <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token function">app</span><span class="token punctuation">(</span>
+            gifSearchState<span class="token punctuation">,</span>
+            gifSearchActions<span class="token punctuation">,</span>
+            gifSearchView<span class="token punctuation">,</span>
+            element<span class="token punctuation">,</span>
+        <span class="token punctuation">)</span>
+        actions<span class="token punctuation">.</span><span class="token function">update</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span> <span class="token comment">//&lt;------ THIS</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+<p>This means the <code>onselect</code> callback is available in the state of the search app. So let&apos;s add a click-handler to the images, so that <code>onselect</code> is called when a gif-thumbnail is clicked:</p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>img</span> <span class="token attr-name">key</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>gif<span class="token punctuation">}</span></span> <span class="token attr-name">src</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>gif<span class="token punctuation">}</span></span> <span class="token attr-name">width</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>80<span class="token punctuation">&quot;</span></span> <span class="token attr-name">height</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>80<span class="token punctuation">&quot;</span></span> <span class="token attr-name">onclick</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>_ <span class="token operator">=&gt;</span> state<span class="token punctuation">.</span><span class="token function">onselect</span><span class="token punctuation">(</span>gif<span class="token punctuation">)</span><span class="token punctuation">}</span></span> <span class="token punctuation">/&gt;</span></span>
+</code></pre>
+<p>This is enough to turn our gif-search app into a reusable component for the example app above:</p>
+<div style="width: 150%; position: relative; left: -25%">
+<p data-height="600" data-theme-id="dark" data-slug-hash="qpgzre" data-default-tab="js,result" data-user="zaceno" data-embed-version="2" data-pen-title="gif search hyperapp - 2" class="codepen">See the Pen <a href="https://codepen.io/zaceno/pen/qpgzre/">gif search hyperapp - 2</a> by Zacharias Enochsson (<a href="https://codepen.io/zaceno">@zaceno</a>) on <a href="https://codepen.io">CodePen</a>.</p>
+<script async src="https://production-assets.codepen.io/assets/embed/ei.js"></script>
+</div>
+
+
+<h2 id="generalizing-the-pattern">Generalizing the pattern</h2>
+<p>So that works, but of course it would be even nicer to have a function that could make our stateful component for us.</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> GifSearch <span class="token operator">=</span> <span class="token function">appComponent</span><span class="token punctuation">(</span>
+    gifSearchState<span class="token punctuation">,</span>
+    gifSearchActions<span class="token punctuation">,</span>
+    gifSearchView<span class="token punctuation">,</span>
+    <span class="token string">&apos;gif-search&apos;</span>
+<span class="token punctuation">)</span>
+</code></pre>
+<p>...using the pattern we had before:</p>
+<pre class="language-js"><code class="language-js">
+<span class="token keyword">const</span> <span class="token function-variable function">appComponent</span> <span class="token operator">=</span> <span class="token punctuation">(</span>initialState<span class="token punctuation">,</span> actionDefinitions<span class="token punctuation">,</span> view<span class="token punctuation">,</span> tagName<span class="token punctuation">)</span> <span class="token operator">=&gt;</span>
+    props <span class="token operator">=&gt;</span>
+        <span class="token function">h</span><span class="token punctuation">(</span>tagName<span class="token punctuation">,</span> <span class="token punctuation">{</span>
+            oncreate<span class="token punctuation">:</span> element <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+                <span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token function">app</span><span class="token punctuation">(</span>
+                    initialState<span class="token punctuation">,</span>
+                    actionDefinitions<span class="token punctuation">,</span>
+                    view<span class="token punctuation">,</span>
+                    element<span class="token punctuation">,</span>
+                <span class="token punctuation">)</span>
+                actions<span class="token punctuation">.</span><span class="token function">update</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>
+            <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+<p>While that worked for the example above, there are some significant deficiencies if we want to
+use <code>appComponent</code> more generally.</p>
+<p>First: It is not enough to call the update
+function just when the element is created -- we must call it everytime the main app rerenders, to make the sub-app aware of prop changes.</p>
+<p>Since the same element will be provided to both the <code>oncreate</code> and <code>onupdate</code> lifecycle methods, that&apos;s an opportuninty to store the <code>update</code> action, so that we can call it in <code>onupdate</code> as well as in <code>oncreate</code>.</p>
+<pre class="language-js"><code class="language-js">
+<span class="token keyword">const</span> <span class="token function-variable function">appComponent</span> <span class="token operator">=</span> <span class="token punctuation">(</span>initialState<span class="token punctuation">,</span> actionDefinitions<span class="token punctuation">,</span> view<span class="token punctuation">,</span> tagName<span class="token punctuation">)</span> <span class="token operator">=&gt;</span>
+    props <span class="token operator">=&gt;</span>
+        <span class="token function">h</span><span class="token punctuation">(</span>tagName<span class="token punctuation">,</span> <span class="token punctuation">{</span>
+            oncreate<span class="token punctuation">:</span> element <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+                <span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token function">app</span><span class="token punctuation">(</span>
+                    initialState<span class="token punctuation">,</span>
+                    actionDefinitions<span class="token punctuation">,</span>
+                    view<span class="token punctuation">,</span>
+                    element<span class="token punctuation">,</span>
+                <span class="token punctuation">)</span>
+                actions<span class="token punctuation">.</span><span class="token function">update</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>
+                element<span class="token punctuation">.</span>_update <span class="token operator">=</span> actions<span class="token punctuation">.</span>update  <span class="token comment">// &lt;----  THIS</span>
+            <span class="token punctuation">}</span><span class="token punctuation">,</span>
+            onupdate<span class="token punctuation">:</span> element <span class="token operator">=&gt;</span> element<span class="token punctuation">.</span><span class="token function">_update</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>  <span class="token comment">// &lt;--- THIS</span>
+        <span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+<p>Of course, we can&apos;t rely on the <code>actionDefinitions</code> to <em>have</em> an <code>update</code> action. To be safe, we need to add such an action ourselves. We&apos;ll use a name that is unlikely to be used, to avoid naming collisions:</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> <span class="token function-variable function">appComponent</span> <span class="token operator">=</span> <span class="token punctuation">(</span>initialState<span class="token punctuation">,</span> actionDefinitions<span class="token punctuation">,</span> view<span class="token punctuation">,</span> tagName<span class="token punctuation">)</span> <span class="token operator">=&gt;</span>
+    props <span class="token operator">=&gt;</span>
+        <span class="token function">h</span><span class="token punctuation">(</span>tagName<span class="token punctuation">,</span> <span class="token punctuation">{</span>
+            oncreate<span class="token punctuation">:</span> element <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+                actionDefinitions<span class="token punctuation">.</span><span class="token function-variable function">_$update</span> <span class="token operator">=</span> x <span class="token operator">=&gt;</span> x <span class="token comment">// &lt;--- THIS</span>
+                <span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token function">app</span><span class="token punctuation">(</span>
+                    initialState<span class="token punctuation">,</span>
+                    actionDefinitions<span class="token punctuation">,</span>
+                    view<span class="token punctuation">,</span>
+                    element<span class="token punctuation">,</span>
+                <span class="token punctuation">)</span>
+                actions<span class="token punctuation">.</span><span class="token function">_$update</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>
+                element<span class="token punctuation">.</span>_update <span class="token operator">=</span> actions<span class="token punctuation">.</span>_$update
+            <span class="token punctuation">}</span><span class="token punctuation">,</span>
+            onupdate<span class="token punctuation">:</span> element <span class="token operator">=&gt;</span> element<span class="token punctuation">.</span><span class="token function">_update</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>
+        <span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+<p>Finally, since it&apos;s important that the element doesn&apos;t change between <code>oncreate</code> and subsequent <code>onupdate</code>-calls, the user will likely want to key their components. So let&apos;s make sure to pass along them to the vnode:</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> <span class="token function-variable function">appComponent</span> <span class="token operator">=</span> <span class="token punctuation">(</span>initialState<span class="token punctuation">,</span> actionDefinitions<span class="token punctuation">,</span> view<span class="token punctuation">,</span> tagName<span class="token punctuation">)</span> <span class="token operator">=&gt;</span>
+    props <span class="token operator">=&gt;</span>
+        <span class="token function">h</span><span class="token punctuation">(</span>tagName<span class="token punctuation">,</span> <span class="token punctuation">{</span>
+            key<span class="token punctuation">:</span> props<span class="token punctuation">.</span>key <span class="token comment">// &lt;--- THIS</span>
+            oncreate<span class="token punctuation">:</span> element <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+                actionDefinitions<span class="token punctuation">.</span><span class="token function-variable function">_$update</span> <span class="token operator">=</span> x <span class="token operator">=&gt;</span> x
+                <span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token function">app</span><span class="token punctuation">(</span>
+                    initialState<span class="token punctuation">,</span>
+                    actionDefinitions<span class="token punctuation">,</span>
+                    view<span class="token punctuation">,</span>
+                    element<span class="token punctuation">,</span>
+                <span class="token punctuation">)</span>
+                actions<span class="token punctuation">.</span><span class="token function">_$update</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>
+                element<span class="token punctuation">.</span>_update <span class="token operator">=</span> actions<span class="token punctuation">.</span>_$update
+            <span class="token punctuation">}</span><span class="token punctuation">,</span>
+            onupdate<span class="token punctuation">:</span> element <span class="token operator">=&gt;</span> element<span class="token punctuation">.</span><span class="token function">_update</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>
+        <span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+<h2 id="finally">Finally</h2>
+<p>Now that you made it through this article, and you know how to write a function to turn app definitions into stateful components, the prize is: you&apos;ll never have to!</p>
+<p>See <a href="https://github.com/zaceno/hyperapp-nestable">hyperapp-nestable</a> which implements almost exactly this pattern. (It also adds the feature of having an initialization action and an ondestroy action)</p>
+<p>The final example of our mood-gif display, with reusable gif-search component, using hyperapp-nestable is here.</p>
+<div style="width: 150%; position: relative; left: -25%">
+<p data-height="600" data-theme-id="dark" data-slug-hash="ppGMyB" data-default-tab="js,result" data-user="zaceno" data-embed-version="2" data-pen-title="gif search hyperapp - 3" class="codepen">See the Pen <a href="https://codepen.io/zaceno/pen/ppGMyB/">gif search hyperapp - 3</a> by Zacharias Enochsson (<a href="https://codepen.io/zaceno">@zaceno</a>) on <a href="https://codepen.io">CodePen</a>.</p>
+<script async src="https://production-assets.codepen.io/assets/embed/ei.js"></script>
+</div>
+    </article>
+</main>
+</body>  
+</html>

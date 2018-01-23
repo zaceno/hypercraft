@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/assets/prism.css" />
+    <link rel="stylesheet" href="/assets/site.css" />
+    <title>Keying Components - Hypercraft</title>
+    <meta name="description" content="A decorator for &#x60;h&#x60; to allow keying components (when using JSX)" />
+  </head>
+  <body>
+    <header>
+      <h1>Hypercraft</h1>
+      <p>Hyperapp tricks, patterns and pitfalls</p>
+      <ul class="nav">
+        <li><a href="/">Index</a></li>
+        <li><a href="/about">About</a></li>
+      </ul>
+    </header>
+    <main>
+    <article>
+      <h1>Keying Components</h1>
+      <div class="meta">A decorator for &#x60;h&#x60; to allow keying components (when using JSX)</div>
+      <p>You have a component:</p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token keyword">const</span> <span class="token function-variable function">Something</span> <span class="token operator">=</span> props <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>something<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span>
+        <span class="token punctuation">{</span><span class="token comment">/* ... complex stuff ... */</span><span class="token punctuation">}</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+<span class="token punctuation">)</span>
+</code></pre>
+<p>And you use it in your view:</p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token keyword">const</span> <span class="token function-variable function">view</span> <span class="token operator">=</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>main</span><span class="token punctuation">&gt;</span></span>
+    <span class="token operator">...</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>Something</span> <span class="token attr-name">foo</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>bar<span class="token punctuation">}</span></span> <span class="token punctuation">/&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>Something</span> <span class="token attr-name">baz</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>bing<span class="token punctuation">}</span></span> <span class="token punctuation">/&gt;</span></span>
+    <span class="token operator">...</span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>main</span><span class="token punctuation">&gt;</span></span>
+</code></pre>
+<p>Now, let&apos;s say you realize you need to key your components for some reason -- so you do:</p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token keyword">const</span> <span class="token function-variable function">view</span> <span class="token operator">=</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>main</span><span class="token punctuation">&gt;</span></span>
+    <span class="token operator">...</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>Something</span> <span class="token attr-name">foo</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>bar<span class="token punctuation">}</span></span> <span class="token attr-name">key</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>fookey<span class="token punctuation">&quot;</span></span><span class="token punctuation">/&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>Something</span> <span class="token attr-name">baz</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>bing<span class="token punctuation">}</span></span> <span class="token attr-name">key</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>barkey<span class="token punctuation">&quot;</span></span> <span class="token punctuation">/&gt;</span></span>
+    <span class="token operator">...</span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>main</span><span class="token punctuation">&gt;</span></span>
+</code></pre>
+<p>On it&apos;s own, this doesn&apos;t work. Not without updating the implementation of the component.
+Because <code>&lt;Something ...&gt;</code> doesn&apos;t represent a vnode in itself: it&apos;s only a <em>call</em> to a function
+which returns a vnode. And that vnode is where you want the key.</p>
+<p>So the component implementation needs to change to:</p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token keyword">const</span> <span class="token function-variable function">Something</span> <span class="token operator">=</span> props <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>something<span class="token punctuation">&quot;</span></span> <span class="token attr-name">key</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>props<span class="token punctuation">.</span>key<span class="token punctuation">}</span></span><span class="token punctuation">&gt;</span></span>
+        <span class="token punctuation">{</span><span class="token comment">/* ... complex stuff ... */</span><span class="token punctuation">}</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+<span class="token punctuation">)</span>
+</code></pre>
+<p>It is the context in which the component is <em>used</em> which determines wether or not keys are needed. The <code>key={props.key}</code> we added is not <em>always</em> required. It is not relevant to the internal logic of the component. One might even argue it&apos;s <em>wrong</em> to put it there. At least, I know it annoys me when I have to do it ;)</p>
+<p>Could we make it so that keying <em>any</em> component automatically adds the key to the top vnode it returns?</p>
+<p>Why, yes -- we can! At least when using JSX, because <code>&lt;Something key=&quot;foo&quot; /&gt;</code>, compiles to
+<code>h(Something, {key: &apos;foo&apos;})</code>, where <code>h</code> is configured with the jsx pragma <code>/** @jsx h */</code> at the top of your file.</p>
+<p>So let&apos;s replace Hyperapp&apos;s <code>h</code> with our own:</p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token keyword">import</span> <span class="token punctuation">{</span>h <span class="token keyword">as</span> _h<span class="token punctuation">,</span> app<span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">&apos;hyperapp&apos;</span>
+
+<span class="token keyword">function</span> <span class="token function">h</span> <span class="token punctuation">(</span>name<span class="token punctuation">,</span> props<span class="token punctuation">,</span> <span class="token operator">...</span>children<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> node <span class="token operator">=</span> <span class="token function">_h</span><span class="token punctuation">(</span>name<span class="token punctuation">,</span> props<span class="token punctuation">,</span> <span class="token operator">...</span>children<span class="token punctuation">)</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token keyword">typeof</span> name <span class="token operator">===</span> <span class="token string">&apos;function&apos;</span><span class="token punctuation">)</span> node<span class="token punctuation">.</span>props<span class="token punctuation">.</span>key <span class="token operator">=</span> props<span class="token punctuation">.</span>key
+    <span class="token keyword">return</span> node
+<span class="token punctuation">}</span>
+
+<span class="token comment">/** @jsx h */</span>
+
+<span class="token comment">// Now keys on JSX components are automatically</span>
+<span class="token comment">// set on their top vnodes</span>
+<span class="token comment">// ...</span>
+</code></pre>
+<p>This trick works even if you&apos;re not using JSX, of course. You just need to make sure to use your <code>h</code> to call the component-function:  <code>h(Something,{key:&quot;foo&quot;})</code> rather than the straightforward <code>Something({key:&quot;foo&quot;})</code></p>
+
+    </article>
+</main>
+</body>  
+</html>

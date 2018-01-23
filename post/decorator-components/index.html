@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/assets/prism.css" />
+    <link rel="stylesheet" href="/assets/site.css" />
+    <title>Decorator Components - Hypercraft</title>
+    <meta name="description" content="JSX-compatible pseudo-components which modify their children" />
+  </head>
+  <body>
+    <header>
+      <h1>Hypercraft</h1>
+      <p>Hyperapp tricks, patterns and pitfalls</p>
+      <ul class="nav">
+        <li><a href="/">Index</a></li>
+        <li><a href="/about">About</a></li>
+      </ul>
+    </header>
+    <main>
+    <article>
+      <h1>Decorator Components</h1>
+      <div class="meta">JSX-compatible pseudo-components which modify their children</div>
+      <p>There are many cases where there&apos;s a type of behavior you&apos;d like to apply
+to components in general. It&apos;d be nice to be able to say:</p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>Draggable</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>Thumbnail</span> <span class="token attr-name">img</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>someimg<span class="token punctuation">}</span></span><span class="token punctuation">&gt;</span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>Draggable</span><span class="token punctuation">&gt;</span></span>
+
+<span class="token operator">...</span>
+
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>Draggable</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ContactCard</span> <span class="token attr-name">person</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>somePerson<span class="token punctuation">}</span></span> <span class="token punctuation">/&gt;</span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>Draggable</span><span class="token punctuation">&gt;</span></span>
+</code></pre>
+<p>The idea here is that <code>&lt;Draggable /&gt;</code> is <em>not</em> a component in the
+usual sense, which wrapps <code>&lt;Thumbnail /&gt;</code> or <code>&lt;ContactCard /&gt;</code> in a vnode of it&apos;s own
+creation. Instead, it <em>modfies</em> it&apos;s children somehow, and then returns it. In this case,
+the modification would consist of adding a bunch of properties and event-handlers to
+it&apos;s children to make them draggable, such as <code>draggable=&quot;true&quot;</code>, <code>ondragstart: ev =&gt; ...</code>, 
+et c.</p>
+<p>A JSX component such as this</p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>MyComponent</span> <span class="token attr-name">foo</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>bar<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ChildComponent1</span> <span class="token punctuation">/&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ChildComponent1</span> <span class="token punctuation">/&gt;</span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>MyComponent</span><span class="token punctuation">&gt;</span></span>
+</code></pre>
+<p>will be transformed into this call:</p>
+<pre class="language-js"><code class="language-js"><span class="token function">MyComponent</span><span class="token punctuation">(</span><span class="token punctuation">{</span>foo<span class="token punctuation">:</span> <span class="token string">&quot;bar&quot;</span><span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token punctuation">[</span><span class="token function">ChildComponent1</span><span class="token punctuation">(</span><span class="token operator">...</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token function">ChildComponent2</span><span class="token punctuation">(</span><span class="token operator">...</span><span class="token punctuation">)</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+</code></pre>
+<p>The first thing we notice is that we don&apos;t know if we&apos;ll have one or more children.
+The only assumption we can make, is that if we have multiple children, the &quot;decoration&quot;
+(= transformation) we intend with our decorator-component, will have to apply to every
+individual child</p>
+<p>you&apos;d like to encapsulate certain behavior in a reusable component,
+but such a component shouldn&apos;t produce a</p>
+
+    </article>
+</main>
+</body>  
+</html>
