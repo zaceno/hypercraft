@@ -102,7 +102,7 @@ fetchData<span class="token punctuation">:</span> id <span class="token operator
 <code>fetchFoo</code>.</p>
 <p>A more ergonomical solution would be to use a <em>generic reducer action</em> such as this:</p>
 <pre class="language-js"><code class="language-js">
-reducer<span class="token punctuation">:</span> fn <span class="token operator">=&gt;</span> state <span class="token operator">=&gt;</span> <span class="token function">fn</span><span class="token punctuation">(</span>state<span class="token punctuation">)</span><span class="token punctuation">,</span>
+reduce<span class="token punctuation">:</span> fn <span class="token operator">=&gt;</span> state <span class="token operator">=&gt;</span> <span class="token function">fn</span><span class="token punctuation">(</span>state<span class="token punctuation">)</span><span class="token punctuation">,</span>
 
 fetchData<span class="token punctuation">:</span> id <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
     <span class="token function">fetch</span><span class="token punctuation">(</span><span class="token template-string"><span class="token string">`http://example.com/data/</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>id<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">`</span></span><span class="token punctuation">)</span>

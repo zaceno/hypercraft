@@ -187,7 +187,7 @@ function just when the element is created -- we must call it everytime the main 
                 actions<span class="token punctuation">.</span><span class="token function">_$update</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>
                 element<span class="token punctuation">.</span>_update <span class="token operator">=</span> actions<span class="token punctuation">.</span>_$update
             <span class="token punctuation">}</span><span class="token punctuation">,</span>
-            onupdate<span class="token punctuation">:</span> element <span class="token operator">=&gt;</span> element<span class="token punctuation">.</span><span class="token function">_update</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>
+            onupdate<span class="token punctuation">:</span> element <span class="token operator">=&gt;</span> element<span class="token punctuation">.</span><span class="token function">_$update</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>
         <span class="token punctuation">}</span><span class="token punctuation">)</span>
 </code></pre>
 <p>Finally, since it&apos;s important that the element doesn&apos;t change between <code>oncreate</code> and subsequent <code>onupdate</code>-calls, the user will likely want to key their components. So let&apos;s make sure to pass along them to the vnode:</p>
@@ -206,7 +206,7 @@ function just when the element is created -- we must call it everytime the main 
                 actions<span class="token punctuation">.</span><span class="token function">_$update</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>
                 element<span class="token punctuation">.</span>_update <span class="token operator">=</span> actions<span class="token punctuation">.</span>_$update
             <span class="token punctuation">}</span><span class="token punctuation">,</span>
-            onupdate<span class="token punctuation">:</span> element <span class="token operator">=&gt;</span> element<span class="token punctuation">.</span><span class="token function">_update</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>
+            onupdate<span class="token punctuation">:</span> element <span class="token operator">=&gt;</span> element<span class="token punctuation">.</span><span class="token function">_$update</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>
         <span class="token punctuation">}</span><span class="token punctuation">)</span>
 </code></pre>
 <h2 id="finally">Finally</h2>

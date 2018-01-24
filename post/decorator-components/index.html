@@ -20,39 +20,111 @@
     <article>
       <h1>Decorator Components</h1>
       <div class="meta">JSX-compatible pseudo-components which modify their children</div>
-      <p>There are many cases where there&apos;s a type of behavior you&apos;d like to apply
-to components in general. It&apos;d be nice to be able to say:</p>
-<pre class="language-jsx"><code class="language-jsx"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>Draggable</span><span class="token punctuation">&gt;</span></span>
-    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>Thumbnail</span> <span class="token attr-name">img</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>someimg<span class="token punctuation">}</span></span><span class="token punctuation">&gt;</span></span>
-<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>Draggable</span><span class="token punctuation">&gt;</span></span>
+      <p>Quite often your app has behaviors which apply generally to many part of your UI.
+Rather than repeat this behavior in many components, you want to find a way to encapsulate
+it in a reusable form.</p>
+<p>One way, is to encapsulate the behavior in components which do not themselves produce vnodes,
+but rather modify and return their children.</p>
+<p>Imagine for example, you&apos;ve got a bunch of nodes in your app, where you&apos;d like a class added
+when the mouse hovers them. You could write a component such as this:</p>
+<pre class="language-js"><code class="language-js">
+<span class="token keyword">const</span> <span class="token function-variable function">ClassOnHover</span> <span class="token operator">=</span> <span class="token punctuation">(</span>props<span class="token punctuation">,</span> children<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> children<span class="token punctuation">.</span><span class="token function">map</span><span class="token punctuation">(</span>child <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>child<span class="token punctuation">.</span>props<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        child<span class="token punctuation">.</span>props<span class="token punctuation">.</span>onmouseover<span class="token punctuation">:</span> ev <span class="token operator">=&gt;</span> ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>classList<span class="token punctuation">.</span><span class="token function">add</span><span class="token punctuation">(</span>props<span class="token punctuation">.</span><span class="token keyword">class</span><span class="token punctuation">)</span>
+        child<span class="token punctuation">.</span>props<span class="token punctuation">.</span>onmouseout<span class="token punctuation">:</span> ev <span class="token operator">=&gt;</span> ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>classList<span class="token punctuation">.</span><span class="token function">remove</span><span class="token punctuation">(</span>props<span class="token punctuation">.</span><span class="token keyword">class</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+    <span class="token keyword">return</span> child
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+<p>An explanation of what it does:</p>
+<p>By the time this component is called, the children have been evaluated and turned into
+vnodes. When you write <code>&lt;div foo=&quot;bar&quot;&gt;&apos;hello&apos;&lt;/div&gt;</code> in your view, that gets transformed into a
+vnode of the shape: </p>
+<pre class="language-js"><code class="language-js"><span class="token punctuation">{</span>
+    name<span class="token punctuation">:</span> <span class="token string">&apos;div&apos;</span><span class="token punctuation">,</span>
+    props<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        foo<span class="token punctuation">:</span> <span class="token string">&apos;bar&apos;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    children<span class="token punctuation">:</span> <span class="token punctuation">[</span>
+        <span class="token string">&apos;Hello&apos;</span>
+    <span class="token punctuation">]</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>So by setting <code>children[i].props.onmouseover = ...</code> and returning the <code>children</code> it is as if
+we had written the onmouseover in the child declarations in the frist place. Simple as that!
+Now you can use it like this:</p>
+<pre class="language-jsx"><code class="language-jsx">
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ClassOnHover</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>highlight<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>p</span><span class="token punctuation">&gt;</span></span>This p gets the <span class="token keyword">class</span> <span class="token string">&quot;highlight&quot;</span> on mouseover<span class="token punctuation">.</span> So does the button below<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>p</span><span class="token punctuation">&gt;</span></span>
+    This textnode does not <span class="token keyword">get</span> affected though <span class="token punctuation">:</span><span class="token punctuation">(</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>button</span><span class="token punctuation">&gt;</span></span>Boop<span class="token operator">!</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>button</span><span class="token punctuation">&gt;</span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ClassOnHover</span><span class="token punctuation">&gt;</span></span>
+</code></pre>
+<p>There&apos;s one significant problem with the decorator component above though: it <em>overwrites</em> any
+<code>onmouseover</code> and <code>onmouseout</code> defined in the immediate children. A smarter strategy would be
+to <em>combine</em> the handlers with the child&apos;s handlers.</p>
+<pre class="language-jsx"><code class="language-jsx">
+<span class="token keyword">function</span> <span class="token function">stackHandlers</span> <span class="token punctuation">(</span>props<span class="token punctuation">,</span> name<span class="token punctuation">,</span> handler<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">let</span> orig <span class="token operator">=</span> props<span class="token punctuation">[</span>name<span class="token punctuation">]</span>
+    props<span class="token punctuation">[</span>name<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token operator">!</span>orig <span class="token operator">?</span> fn <span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token operator">...</span>args<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token function">orig</span><span class="token punctuation">(</span><span class="token operator">...</span>args<span class="token punctuation">)</span>
+        <span class="token function">fn</span><span class="token punctuation">(</span><span class="token operator">...</span>args<span class="token punctuation">)</span>
+    <span class="token punctuation">}</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
 
 <span class="token operator">...</span>
 
-<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>Draggable</span><span class="token punctuation">&gt;</span></span>
-    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ContactCard</span> <span class="token attr-name">person</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>somePerson<span class="token punctuation">}</span></span> <span class="token punctuation">/&gt;</span></span>
-<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>Draggable</span><span class="token punctuation">&gt;</span></span>
+
+<span class="token keyword">const</span> <span class="token function-variable function">ClassOnHover</span> <span class="token operator">=</span> <span class="token punctuation">(</span>props<span class="token punctuation">,</span> children<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> children<span class="token punctuation">.</span><span class="token function">map</span><span class="token punctuation">(</span>child <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>child<span class="token punctuation">.</span>props<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token function">stackHandlers</span><span class="token punctuation">(</span>child<span class="token punctuation">.</span>props<span class="token punctuation">,</span> <span class="token string">&apos;onmouseover&apos;</span><span class="token punctuation">,</span> ev <span class="token operator">=&gt;</span> ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>classList<span class="token punctuation">)</span>
+        child<span class="token punctuation">.</span>props<span class="token punctuation">.</span>onmouseover<span class="token punctuation">:</span> ev <span class="token operator">=&gt;</span> ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>classList<span class="token punctuation">.</span><span class="token function">add</span><span class="token punctuation">(</span>props<span class="token punctuation">.</span><span class="token keyword">class</span><span class="token punctuation">)</span>
+        child<span class="token punctuation">.</span>props<span class="token punctuation">.</span>onmouseout<span class="token punctuation">:</span> ev <span class="token operator">=&gt;</span> ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>classList<span class="token punctuation">.</span><span class="token function">remove</span><span class="token punctuation">(</span>props<span class="token punctuation">.</span><span class="token keyword">class</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+    <span class="token keyword">return</span> child
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
 </code></pre>
-<p>The idea here is that <code>&lt;Draggable /&gt;</code> is <em>not</em> a component in the
-usual sense, which wrapps <code>&lt;Thumbnail /&gt;</code> or <code>&lt;ContactCard /&gt;</code> in a vnode of it&apos;s own
-creation. Instead, it <em>modfies</em> it&apos;s children somehow, and then returns it. In this case,
-the modification would consist of adding a bunch of properties and event-handlers to
-it&apos;s children to make them draggable, such as <code>draggable=&quot;true&quot;</code>, <code>ondragstart: ev =&gt; ...</code>, 
-et c.</p>
-<p>A JSX component such as this</p>
-<pre class="language-jsx"><code class="language-jsx"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>MyComponent</span> <span class="token attr-name">foo</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>bar<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span>
-    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ChildComponent1</span> <span class="token punctuation">/&gt;</span></span>
-    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ChildComponent1</span> <span class="token punctuation">/&gt;</span></span>
-<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>MyComponent</span><span class="token punctuation">&gt;</span></span>
+<blockquote>
+<p>This will set the decorator handler on the props, if there is no original handler
+But if there is, it will set a handler that runs both in sequence.</p>
+</blockquote>
+<p>This way you can also stack multiple decorators and they will all do their job.</p>
+<p>If you find yourself creating a lot of decorator components, you may appreciate this
+little helper:</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> <span class="token function-variable function">decorator</span> <span class="token operator">=</span> getDeco <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>props<span class="token punctuation">,</span> children<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> decorations <span class="token operator">=</span> <span class="token function">getDeco</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>
+    <span class="token keyword">return</span> children<span class="token punctuation">.</span><span class="token function">map</span><span class="token punctuation">(</span>child <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>child<span class="token punctuation">.</span>props<span class="token punctuation">)</span> <span class="token keyword">return</span> child
+        <span class="token keyword">for</span> <span class="token punctuation">(</span><span class="token keyword">let</span> name <span class="token keyword">in</span> decorations<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token keyword">if</span> <span class="token punctuation">(</span>name <span class="token operator">===</span> <span class="token string">&apos;class&apos;</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+                child<span class="token punctuation">.</span>props<span class="token punctuation">.</span><span class="token keyword">class</span> <span class="token operator">=</span> child<span class="token punctuation">.</span>props<span class="token punctuation">.</span><span class="token keyword">class</span> <span class="token operator">+</span> <span class="token string">&apos; &apos;</span> <span class="token operator">+</span> decorations<span class="token punctuation">.</span><span class="token keyword">class</span>
+            <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span>name<span class="token punctuation">.</span><span class="token function">substr</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">)</span> <span class="token operator">===</span> <span class="token string">&apos;on&apos;</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+                <span class="token function">stackHandler</span><span class="token punctuation">(</span>child<span class="token punctuation">.</span>props<span class="token punctuation">,</span> name<span class="token punctuation">,</span> decorations<span class="token punctuation">[</span>name<span class="token punctuation">]</span><span class="token punctuation">)</span>
+            <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{</span>
+                child<span class="token punctuation">.</span>props<span class="token punctuation">[</span>name<span class="token punctuation">]</span> <span class="token operator">=</span> decorations<span class="token punctuation">[</span>name<span class="token punctuation">]</span>
+            <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span>
+        <span class="token keyword">return</span> child
+    <span class="token punctuation">}</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
 </code></pre>
-<p>will be transformed into this call:</p>
-<pre class="language-js"><code class="language-js"><span class="token function">MyComponent</span><span class="token punctuation">(</span><span class="token punctuation">{</span>foo<span class="token punctuation">:</span> <span class="token string">&quot;bar&quot;</span><span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token punctuation">[</span><span class="token function">ChildComponent1</span><span class="token punctuation">(</span><span class="token operator">...</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token function">ChildComponent2</span><span class="token punctuation">(</span><span class="token operator">...</span><span class="token punctuation">)</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+<p>Notice that we&apos;re using the <code>stackHandlers</code> just as before -- for any prop that starts
+with <code>on</code>. That means we&apos;re able to combine lifecycle events as well. </p>
+<p>Also notice I added a &quot;combiner&quot; for the <code>class</code> prop. Often if you want a component
+that add&apos;s a class to the children, that&apos;s what you want.
+Any other props the decorator provides are just set on the child&apos;s <code>props</code>. You&apos;ll
+have to take care not to overwrite anything important.</p>
+<p>Furthermore, notice how we pass the <code>getDeco</code> function as an argument, and call it
+to find out the decorations to apply. That is so the decorations can be dynamically
+dependent on the props passed to the decorator component. </p>
+<p>You&apos;d use the <code>decorator</code> function to create the <code>ClassOnHover</code> component above, like
+this:</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> ClassOnHover <span class="token operator">=</span> <span class="token function">decorator</span><span class="token punctuation">(</span>props <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>
+    onmouseover<span class="token punctuation">:</span> ev <span class="token operator">=&gt;</span> ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>classList<span class="token punctuation">.</span><span class="token function">add</span><span class="token punctuation">(</span>props<span class="token punctuation">.</span><span class="token keyword">class</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+    onmouseout<span class="token punctuation">:</span> ev <span class="token operator">=&gt;</span> ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>classList<span class="token punctuation">.</span><span class="token function">remove</span><span class="token punctuation">(</span>props<span class="token punctuation">.</span><span class="token keyword">class</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
 </code></pre>
-<p>The first thing we notice is that we don&apos;t know if we&apos;ll have one or more children.
-The only assumption we can make, is that if we have multiple children, the &quot;decoration&quot;
-(= transformation) we intend with our decorator-component, will have to apply to every
-individual child</p>
-<p>you&apos;d like to encapsulate certain behavior in a reusable component,
-but such a component shouldn&apos;t produce a</p>
+<p>Finally, here&apos;s a <a href="https://codepen.io/zaceno/pen/vpwVmp?editors=0010">live example</a> showing that it works.</p>
 
     </article>
 </main>
