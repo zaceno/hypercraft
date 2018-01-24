@@ -118,7 +118,7 @@ A more ergonomical solution would be to use a *generic reducer action* such as t
 
 ```js
 
-reducer: fn => state => fn(state),
+reduce: fn => state => fn(state),
 
 fetchData: id => (state, actions) => {
     fetch(`http://example.com/data/${id}`)

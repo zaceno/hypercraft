@@ -222,7 +222,7 @@ const appComponent = (initialState, actionDefinitions, view, tagName) =>
                 actions._$update(props)
                 element._update = actions._$update
             },
-            onupdate: element => element._update(props)
+            onupdate: element => element._$update(props)
         })
 
 ```
@@ -245,7 +245,7 @@ const appComponent = (initialState, actionDefinitions, view, tagName) =>
                 actions._$update(props)
                 element._update = actions._$update
             },
-            onupdate: element => element._update(props)
+            onupdate: element => element._$update(props)
         })
 
 ```
