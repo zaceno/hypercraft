@@ -77,9 +77,8 @@ function stackHandlers (props, name, handler) {
 
 const ClassOnHover = (props, children) => children.map(child => {
     if (child.props) {
-        stackHandlers(child.props, 'onmouseover', ev => ev.currentTarget.classList)
-        child.props.onmouseover: ev => ev.currentTarget.classList.add(props.class)
-        child.props.onmouseout: ev => ev.currentTarget.classList.remove(props.class)
+        stackHandlers(child.props, 'onmouseover', ev => ev.currentTarget.classList.add(props.class))
+        stackHandlers(child.props, 'onmouseout', ev => ev.currentTarget.classList.add(props.class))
     }
     return child
 })
