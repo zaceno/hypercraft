@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://zaceno.github.io/hypercraft/assets/prism.css" />
+    <link rel="stylesheet" href="https://zaceno.github.io/hypercraft/assets/site.css" />
+    <title>Static VNodes - Hypercraft</title>
+    <meta name="description" content="Optimization technique for faster rendering when you&#x27;ve got a lot of static html" />
+  </head>
+  <body>
+    <header>
+      <h1>Hypercraft</h1>
+      <p>Hyperapp tricks, patterns and pitfalls</p>
+      <ul class="nav">
+        <li><a href="https://zaceno.github.io/hypercraft/">Index</a></li>
+        <li><a href="https://zaceno.github.io/hypercraft/about">About</a></li>
+      </ul>
+    </header>
+    <main>
+    <article>
+      <h1>Static VNodes</h1>
+      <div class="meta">Optimization technique for faster rendering when you&#x27;ve got a lot of static html</div>
+      <p>Have a look at <a href="https://github.com/hyperapp/hyperapp/blob/904c3b00adfd2ed8f0bafc130a743f308fa2d3c3/src/index.js#L221">this line</a> in the Hyperapp source.</p>
+<pre class="language-js"><code class="language-js">
+ <span class="token keyword">function</span> <span class="token function">patch</span><span class="token punctuation">(</span>parent<span class="token punctuation">,</span> element<span class="token punctuation">,</span> oldNode<span class="token punctuation">,</span> node<span class="token punctuation">,</span> isSVG<span class="token punctuation">,</span> nextSibling<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>node <span class="token operator">===</span> oldNode<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span>oldNode <span class="token operator">==</span> <span class="token keyword">null</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token operator">...</span>
+</code></pre>
+<p>This means, that if ever a node (a <a href="https://github.com/hyperapp/hyperapp/blob/1.0.2/docs/concepts/vnodes.md">virtual node</a>) is encountered which
+is equal, i e <strong>the same instance</strong> as the corresponding old node, <em>patching is skipped over completely</em>. The patch function will not even drill down to make sure to see if anything has changed.</p>
+<p>So imagine you have a component like this:</p>
+<pre class="language-jsx"><code class="language-jsx">
+<span class="token keyword">export</span> <span class="token keyword">const</span> <span class="token function-variable function">GameCommentBox</span> <span class="token operator">=</span> props <span class="token operator">=&gt;</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>game-comment<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>game-comment-fancy-heading<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span>
+        <span class="token punctuation">{</span>props<span class="token punctuation">.</span>player <span class="token operator">===</span> <span class="token number">1</span> <span class="token operator">?</span> <span class="token string">&quot;Player One&quot;</span>  <span class="token punctuation">:</span> <span class="token string">&quot;Player Two&quot;</span><span class="token punctuation">}</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>game-comment-move<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span><span class="token punctuation">{</span>props<span class="token punctuation">.</span>move<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>game-comment-fancy-footer<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+</code></pre>
+<p>Especially if there are many such components in a list (as one can imagine for the example abpve), you can spare the rendering a lot of effort wasted on checking virtual nodes that haven&apos;t changed, by defining the static parts as constants:</p>
+<pre class="language-jsx"><code class="language-jsx">
+<span class="token keyword">const</span> <span class="token function-variable function">Heading</span> <span class="token operator">=</span> player <span class="token operator">=&gt;</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>game-comment-fancy-heading<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span><span class="token punctuation">{</span>player<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+<span class="token keyword">const</span> P1HEADING <span class="token operator">=</span> <span class="token function">Heading</span><span class="token punctuation">(</span><span class="token string">&apos;Player One&apos;</span><span class="token punctuation">)</span>
+<span class="token keyword">const</span> P2HEADING <span class="token operator">=</span> <span class="token function">Heading</span><span class="token punctuation">(</span><span class="token string">&apos;Player Two&apos;</span><span class="token punctuation">)</span>
+<span class="token keyword">const</span> FOOTER <span class="token operator">=</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>game-comment-fancy-footer<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+
+<span class="token keyword">export</span> <span class="token keyword">const</span> <span class="token function-variable function">GameCommentBox</span> <span class="token operator">=</span> props <span class="token operator">=&gt;</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>game-comment<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span>
+    <span class="token punctuation">{</span>props<span class="token punctuation">.</span>player <span class="token operator">===</span> <span class="token number">1</span> <span class="token operator">?</span> P1HEADING <span class="token punctuation">:</span> P2HEADING<span class="token punctuation">}</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>game-comment-move<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span><span class="token punctuation">{</span>props<span class="token punctuation">.</span>move<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+    <span class="token punctuation">{</span>FOOTER<span class="token punctuation">}</span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+</code></pre>
+<p>This saves the patch function from delving into the heading and footer for every &quot;game comment&quot; because each time it will be not only the same shape but the very same <em>instance</em> of vnode. The concept can be extended to <em>memoization</em> of components, but that&apos;s a topic for another time.</p>
+
+    </article>
+</main>
+</body>  
+</html>
