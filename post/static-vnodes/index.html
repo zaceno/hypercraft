@@ -1,20 +1,33 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-113320588-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-113320588-1');
+    </script>
+    <!-- //Google Analytics -->
     <meta charset="utf-8">
-    <link rel="stylesheet" href="https://zaceno.github.io/hypercraft/assets/prism.css" />
-    <link rel="stylesheet" href="https://zaceno.github.io/hypercraft/assets/site.css" />
+    <link rel="stylesheet" href="../../assets/prism.css" />
+    <link rel="stylesheet" href="../../assets/site.css" />
     <title>Static VNodes - Hypercraft</title>
+    <meta name="keywords" content="hyperapp, javascript, js, tutorial, tips, patterns, static, components, virtual dom, virtual nodes, optimization, performance">
     <meta name="description" content="Optimization technique for faster rendering when you&#x27;ve got a lot of static html" />
   </head>
   <body>
     <header>
-      <h1>Hypercraft</h1>
-      <p>Hyperapp tricks, patterns and pitfalls</p>
-      <ul class="nav">
-        <li><a href="https://zaceno.github.io/hypercraft/">Index</a></li>
-        <li><a href="https://zaceno.github.io/hypercraft/about">About</a></li>
-      </ul>
+      <a href="../../index.html">
+        <h1>Hypercraft</h1>
+        <p>Hyperapp tricks, patterns and pitfalls</p>
+        <ul class="nav">
+          <li><a href="../../index.html">Index</a></li>
+          <li><a href="../../about/index.html">About</a></li>
+        </ul>
+      </a>
     </header>
     <main>
     <article>
@@ -27,8 +40,8 @@
     <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span>oldNode <span class="token operator">==</span> <span class="token keyword">null</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
     <span class="token operator">...</span>
 </code></pre>
-<p>This means, that if ever a node (a <a href="https://github.com/hyperapp/hyperapp/blob/1.0.2/docs/concepts/vnodes.md">virtual node</a>) is encountered which
-is equal, i e <strong>the same instance</strong> as the corresponding old node, <em>patching is skipped over completely</em>. The patch function will not even drill down to make sure to see if anything has changed.</p>
+<p>This means, that if the <code>patch</code>function ever encounters a node (a <a href="https://github.com/hyperapp/hyperapp/blob/1.0.2/docs/concepts/vnodes.md">virtual node</a>) which
+is exactly equal, i e <strong>the same instance</strong> as the corresponding old node, <em>it will skip over it, and all children</em>. The patch function will not even drill down to make sure to see if anything further down has changed.</p>
 <p>So imagine you have a component like this:</p>
 <pre class="language-jsx"><code class="language-jsx">
 <span class="token keyword">export</span> <span class="token keyword">const</span> <span class="token function-variable function">GameCommentBox</span> <span class="token operator">=</span> props <span class="token operator">=&gt;</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>game-comment<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span>
@@ -39,7 +52,7 @@ is equal, i e <strong>the same instance</strong> as the corresponding old node, 
     <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>game-comment-fancy-footer<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
 <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
 </code></pre>
-<p>Especially if there are many such components in a list (as one can imagine for the example abpve), you can spare the rendering a lot of effort wasted on checking virtual nodes that haven&apos;t changed, by defining the static parts as constants:</p>
+<p>Especially if there are many such components in a list (as one can imagine for the example above), you can spare the rendering a lot of effort by defining the static parts as constants:</p>
 <pre class="language-jsx"><code class="language-jsx">
 <span class="token keyword">const</span> <span class="token function-variable function">Heading</span> <span class="token operator">=</span> player <span class="token operator">=&gt;</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>game-comment-fancy-heading<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span><span class="token punctuation">{</span>player<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
 <span class="token keyword">const</span> P1HEADING <span class="token operator">=</span> <span class="token function">Heading</span><span class="token punctuation">(</span><span class="token string">&apos;Player One&apos;</span><span class="token punctuation">)</span>

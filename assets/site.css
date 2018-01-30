@@ -20,6 +20,11 @@ header {
     position: relative;
 }
 
+header a {
+    text-decoration:none;
+    color: #000;
+}
+
 header h1 {
     margin: 0;
     padding: 0;
