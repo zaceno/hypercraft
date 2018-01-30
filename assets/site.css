@@ -62,7 +62,7 @@ header ul.nav li {
 }
 
 header ul.nav a {
-    color: black;
+    text-decoration: underline;
 }
 
 #hyperapp-logo {
