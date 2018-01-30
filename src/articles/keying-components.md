@@ -2,6 +2,7 @@
 title: Keying Components
 date: 2018-01-14
 blurb: A decorator for `h` to allow keying components (when using JSX)
+keywords: virtual dom, keys, components
 ---
 
 You have a component:

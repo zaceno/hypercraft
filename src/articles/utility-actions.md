@@ -2,6 +2,7 @@
 title: Utility Actions
 date: 2018-01-24
 blurb: Generic actions and their uses
+keywords: actions, setter, reducer
 ---
 
 ## Generic setter

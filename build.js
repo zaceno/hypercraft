@@ -30,6 +30,18 @@ metalsmith(__dirname)
     langPrefix: 'language-', 
 }))
 .use(dateFormat({dates: 'date'}))
+.use(function (files, metalsmith, done) {
+    for (var file in files) {
+        if (file.match(/articles\//g)) {
+            files[file].relativeRoot = '../..'
+        } else if (file.match(/about/g)) {
+            files[file].relativeRoot = '..'
+        } else {
+            files[file].relativeRoot = '.'
+        }
+    }
+    done()
+})
 .use(prism())
 .use(collections({
     articles: {

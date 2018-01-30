@@ -2,6 +2,7 @@
 title: Stateful Components
 date: 2018-01-19
 blurb: Stateful components with hyperapp - how to do it, and when you might want to.
+keywords: components, state, lifecycle, app, reuse
 ---
 
 

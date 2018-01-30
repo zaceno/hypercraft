@@ -2,6 +2,7 @@
 title: Decorator Components
 date: 2018-01-24
 blurb: JSX-compatible pseudo-components which modify their children
+keywords: decorators, components, virtual dom
 ---
 
 Quite often your app has behaviors which apply generally to many part of your UI.

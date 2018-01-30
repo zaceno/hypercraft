@@ -2,6 +2,7 @@
 title: Static VNodes
 date: 2018-01-29
 blurb: Optimization technique for faster rendering when you've got a lot of static html
+keywords: static, components, virtual dom, virtual nodes, optimization, performance
 ---
 
 Have a look at [this line](https://github.com/hyperapp/hyperapp/blob/904c3b00adfd2ed8f0bafc130a743f308fa2d3c3/src/index.js#L221) in the Hyperapp source.
@@ -15,8 +16,8 @@ Have a look at [this line](https://github.com/hyperapp/hyperapp/blob/904c3b00adf
 
 ```
 
-This means, that if ever a node (a [virtual node](https://github.com/hyperapp/hyperapp/blob/1.0.2/docs/concepts/vnodes.md)) is encountered which
-is equal, i e **the same instance** as the corresponding old node, *patching is skipped over completely*. The patch function will not even drill down to make sure to see if anything has changed.
+This means, that if the `patch`function ever encounters a node (a [virtual node](https://github.com/hyperapp/hyperapp/blob/1.0.2/docs/concepts/vnodes.md)) which
+is exactly equal, i e **the same instance** as the corresponding old node, *it will skip over it, and all children*. The patch function will not even drill down to make sure to see if anything further down has changed.
 
 So imagine you have a component like this:
 
@@ -31,7 +32,7 @@ export const GameCommentBox = props => <div class="game-comment">
 </div>
 ```
 
-Especially if there are many such components in a list (as one can imagine for the example abpve), you can spare the rendering a lot of effort wasted on checking virtual nodes that haven't changed, by defining the static parts as constants:
+Especially if there are many such components in a list (as one can imagine for the example above), you can spare the rendering a lot of effort by defining the static parts as constants:
 
 ```jsx
 
