@@ -1,5 +1,5 @@
 ---
-title: Modular Apps,
+title: Modular Apps
 date: 2018-02-02
 blurb: The key to building maintainable, large-scale apps is to break them down into small self-contained & reusable modules. But how?
 
