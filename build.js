@@ -29,7 +29,6 @@ metalsmith(__dirname)
     tables: true,
     langPrefix: 'language-', 
 }))
-.use(dateFormat({dates: 'date'}))
 .use(function (files, metalsmith, done) {
     for (var file in files) {
         if (file.match(/articles\//g)) {
@@ -50,6 +49,7 @@ metalsmith(__dirname)
         reverse: true,      
     }
 }))
+.use(dateFormat({dates: 'date'}))
 .use(permalinks({
     relative: false,
     pattern: 'post/:title',

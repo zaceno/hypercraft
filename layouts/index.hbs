@@ -2,9 +2,11 @@
     <ul class="index">
     {{#each articles }}
       <li>
-        <div class="date">{{ date }}</div>
-        <div class="title"><a href="{{ path }}">{{ title }}</a></div>
-        <div class="blurb">{{ blurb }}</div>
+        <a href="{{ path }}">
+          <div class="date">{{ date }}</div>
+          <div class="title">{{ title }}</div>
+          <div class="blurb">{{ blurb }}</div>
+        </a>
       </li>
     {{/each}}
     </ul>
