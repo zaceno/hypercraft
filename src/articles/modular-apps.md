@@ -101,7 +101,7 @@ const actions = {
             */
             return { value: state.value + by } 
         },
-        decremant: by => (state, actions) => {
+        decrement: by => (state, actions) => {
             return { value: state.value - by }
         }
     },
