@@ -17,10 +17,10 @@ when the mouse hovers them. You could write a component such as this:
 
 ```js
 
-const ClassOnHover = (props, children) => children.map(child => {
-    if (child.props) {
-        child.props.onmouseover: ev => ev.currentTarget.classList.add(props.class)
-        child.props.onmouseout: ev => ev.currentTarget.classList.remove(props.class)
+const ClassOnHover = (attr, children) => children.map(child => {
+    if (child.attributes) {
+        child.attributes.onmouseover: ev => ev.currentTarget.classList.add(attr.class)
+        child.attributes.onmouseout: ev => ev.currentTarget.classList.remove(attr.class)
     }
     return child
 })
@@ -36,7 +36,7 @@ vnode of the shape:
 ```js
 {
     name: 'div',
-    props: {
+    attributes: {
         foo: 'bar'
     },
     children: [
@@ -45,7 +45,7 @@ vnode of the shape:
 }
 ```
 
-So by setting `children[i].props.onmouseover = ...` and returning the `children` it is as if
+So by setting `children[i].attributes.onmouseover = ...` and returning the `children` it is as if
 we had written the onmouseover in the child declarations in the frist place. Simple as that!
 Now you can use it like this:
 
@@ -65,9 +65,9 @@ to *combine* the handlers with the child's handlers.
 
 ```jsx
 
-function stackHandlers (props, name, handler) {
-    let orig = props[name]
-    props[name] = (!orig ? fn : (...args) => {
+function stackHandlers (attr, name, handler) {
+    let orig = attr[name]
+    attr[name] = (!orig ? fn : (...args) => {
         orig(...args)
         fn(...args)
     })
@@ -76,10 +76,10 @@ function stackHandlers (props, name, handler) {
 ...
 
 
-const ClassOnHover = (props, children) => children.map(child => {
+const ClassOnHover = (attr, children) => children.map(child => {
     if (child.props) {
-        stackHandlers(child.props, 'onmouseover', ev => ev.currentTarget.classList.add(props.class))
-        stackHandlers(child.props, 'onmouseout', ev => ev.currentTarget.classList.add(props.class))
+        stackHandlers(child.attributes, 'onmouseover', ev => ev.currentTarget.classList.add(attr.class))
+        stackHandlers(child.attributes, 'onmouseout', ev => ev.currentTarget.classList.add(attr.class))
     }
     return child
 })
@@ -96,17 +96,17 @@ If you find yourself creating a lot of decorator components, you may appreciate 
 little helper:
 
 ```js
-const decorator = getDeco => (props, children) => {
-    const decorations = getDeco(props)
+const decorator = getDeco => (attr, children) => {
+    const decorations = getDeco(attr)
     return children.map(child => {
-        if (!child.props) return child
+        if (!child.attributes) return child
         for (let name in decorations) {
             if (name === 'class') {
-                child.props.class = child.props.class + ' ' + decorations.class
+                child.attributes.class = child.attributes.class + ' ' + decorations.class
             } else if (name.substr(0, 2) === 'on') {
-                stackHandler(child.props, name, decorations[name])
+                stackHandler(child.attributes, name, decorations[name])
             } else {
-                child.props[name] = decorations[name]
+                child.attributes[name] = decorations[name]
             }
         }
         return child
@@ -114,12 +114,12 @@ const decorator = getDeco => (props, children) => {
 }
 ```
 
-Notice that we're using the `stackHandlers` just as before -- for any prop that starts
+Notice that we're using the `stackHandlers` just as before -- for any attribute that starts
 with `on`. That means we're able to combine lifecycle events as well. 
 
-Also notice I added a "combiner" for the `class` prop. Often if you want a component
+Also notice I added a "combiner" for the `class` attribute. Often if you want a component
 that add's a class to the children, that's what you want.
-Any other props the decorator provides are just set on the child's `props`. You'll
+Any other attributes the decorator provides are just set on the child's `attributes`. You'll
 have to take care not to overwrite anything important.
 
 Furthermore, notice how we pass the `getDeco` function as an argument, and call it
@@ -130,9 +130,9 @@ You'd use the `decorator` function to create the `ClassOnHover` component above,
 this:
 
 ```js
-const ClassOnHover = decorator(props => ({
-    onmouseover: ev => ev.currentTarget.classList.add(props.class),
-    onmouseout: ev => ev.currentTarget.classList.remove(props.class)
+const ClassOnHover = decorator(attr => ({
+    onmouseover: ev => ev.currentTarget.classList.add(attr.class),
+    onmouseout: ev => ev.currentTarget.classList.remove(attr.class)
 }))
 ```
 
