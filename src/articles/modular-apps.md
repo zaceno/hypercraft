@@ -380,7 +380,7 @@ This little helper essentially implements the pattern above, in a recursive fash
 import foo from './foo'
 import bar from './bar'
 
-const {state, actions, view} = combineModels({
+const {state, actions, view} = combineModules({
     modules: {
         foo: foo(),
         bar: bar(),
