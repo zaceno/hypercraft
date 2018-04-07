@@ -1,0 +1,170 @@
+@import url('https://fonts.googleapis.com/css?family=Bungee|Caveat|Lato:300');
+
+*, html, body{
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+html, body {
+    font-family: "Lato", sans-serif;
+    font-size: 16px;
+    line-height: 1.5rem;
+}
+
+
+header {
+    margin: 1rem;
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+header a.logo {
+    display: block;
+    width: 22rem;
+    height: 4rem;
+    flex: 0 0 auto; 
+    background-image: url('./halogo.png');
+    background-repeat: no-repeat;
+    background-size: 5rem auto;
+    text-decoration:none;
+    color: #000;
+}
+
+header a.logo h1 {
+    margin-top: 0.5rem;
+    font-size: 1.8rem;
+    line-height: 30px;
+    font-family: 'Bungee', cursive;
+    margin-left: 5rem;
+}
+
+header a.logo p {
+    font-family: 'Caveat', cursive;
+    font-size: 1.2rem;
+    margin-left: 5rem;
+    margin-top: -0.3rem;
+}
+
+header ul.nav {
+    list-style-type: none;
+    display: block;
+    width: 10rem;
+    height: 4rem;
+    flex: 1 0 auto;
+    text-align: right;
+    font-size: 18px;
+    line-height: 65px;
+    text-transform: uppercase;
+}
+header ul.nav li {
+    display: inline;
+    margin-right: 1rem;
+}
+
+header ul.nav a {
+    color: #000;
+}
+
+main {
+    max-width: 40rem;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 5rem;
+}
+
+article {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    text-align: justify;
+
+}
+
+article h1 {
+    text-align: center;
+    font-family: Caveat, sans-serif;
+    font-size: 2rem;
+}
+
+article.about h1 {
+    text-align: center;
+    font-family: Caveat, sans-serif;
+    font-size: 2rem;
+    margin-bottom: 3.5rem;
+}
+
+
+article div.meta {
+    text-align: justify;
+    font-style: italic;
+    color: #aaa;
+    width: 85%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 3.5rem;
+}
+
+article h2 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-top: 3.5rem;
+    margin-bottom: 1.5rem;
+}
+
+article h3 {
+    font-size: 1rem;
+    font-weight: bold;
+    font-style: italic;
+    margin-bottom: 0;
+    margin-top: 1.5em;
+}
+
+article p {
+    margin-bottom: 1.5rem;
+}
+
+article code {
+    color: #07a;
+}
+
+article pre {
+    margin-bottom: 1.5em !important;
+    margin-top: 1.5em !important;
+}
+
+article ul {
+    margin-left: 1.5rem;
+}
+
+ul.index {
+    list-style-type: none;
+    text-indent: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.index li {
+    display: block;
+    padding: 1rem 1.5rem 1rem 1.5rem;
+    box-shadow: 0 2px 2px #eee;
+    margin-bottom: 1rem;
+}
+
+.index .date {
+    text-align: right;
+    color: #ccc;
+}
+
+.index .title {
+    font-family: "Caveat", sans-serif;
+    font-size: 1.7rem;
+}
+.index a {
+    color: black;
+    text-decoration: none;
+}
+
+.index .blurb {
+    margin-top: 1rem;
+}

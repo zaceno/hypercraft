@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-113320588-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-113320588-1');
+    </script>
+    <!-- //Google Analytics -->
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <link rel="stylesheet" href="./assets/prism.css" />
+    <link rel="stylesheet" href="./assets/site.css" />
+    <title>Hypercraft</title>
+    <meta name="keywords" content="hyperapp, javascript, js, tutorial, tips, patterns">
+    <meta name="description" content="A collection of Hyperapp tricks &amp; patterns" />
+  </head>
+  <body>
+    <header>
+      <a class="logo" href="./index.html">
+        <h1>Hypercraft</h1>
+        <p>Hyperapp tricks, patterns and pitfalls</p>
+      </a>
+      <ul class="nav">
+        <li><a href="./index.html">Index</a></li>
+        <li><a href="./about/index.html">About</a></li>
+      </ul>
+    </header>
+    <main>
+    <article>
+      <h1></h1>
+      <div class="meta"></div>
+      <p>Some basic rules to live by  with hyperapp and forms:</p>
+<p>Here&apos;s my general approach to forms and form-validation in hyperapp:</p>
+<p>First: the &quot;vanilla-js&quot; approach to form validation, by performing validation in the <code>onsubmit</code>, works just fine. The problem is, that if you
+want to insert  </p>
+<p>Have the value of each field in a state property. For two reasons</p>
+<ul>
+<li>so that when the form rerenders (perhaps because of an error) the values in the fields is preserved. (You could also use keys for this issue)</li>
+<li>so that you can perform validation on the state properties, rather than have to look up the values in the elements.</li>
+</ul>
+<p>skip: Vanilla JS form validation. 
+d</p>
+<pre class="language-js"><code class="language-js">document
+<span class="token punctuation">.</span><span class="token function">querySelector</span><span class="token punctuation">(</span><span class="token string">&apos;form[name=signup]&apos;</span><span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token function">addEventListener</span><span class="token punctuation">(</span><span class="token string">&apos;onsubmit&apos;</span><span class="token punctuation">,</span> ev <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    ev<span class="token punctuation">.</span><span class="token function">preventDefault</span><span class="token punctuation">(</span><span class="token boolean">true</span><span class="token punctuation">)</span>
+
+    <span class="token keyword">const</span> form <span class="token operator">=</span> ev<span class="token punctuation">.</span>currentTarget
+
+    <span class="token keyword">const</span> name       <span class="token operator">=</span> form<span class="token punctuation">.</span>username<span class="token punctuation">.</span>value
+    <span class="token keyword">const</span> age        <span class="token operator">=</span> form<span class="token punctuation">.</span>age<span class="token punctuation">.</span>value
+    <span class="token keyword">const</span> email      <span class="token operator">=</span> form<span class="token punctuation">.</span>email<span class="token punctuation">.</span>value
+    <span class="token keyword">const</span> password   <span class="token operator">=</span> form<span class="token punctuation">.</span>password<span class="token punctuation">.</span>value
+    <span class="token keyword">const</span> repeatpass <span class="token operator">=</span> form<span class="token punctuation">.</span>rempeatpass<span class="token punctuation">.</span>value
+
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>password <span class="token operator">!==</span> repeatpass<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token comment">//attach an error message telling the user</span>
+        <span class="token comment">//that the new passwords don&apos;t match</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token comment">//...</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+<p>skip: Then render the error...
+Let&apos;s use hyperapp&apos;s vdom to render errors. Let&apos;s use a form component:</p>
+<pre class="language-jsx"><code class="language-jsx">
+<span class="token keyword">const</span> <span class="token function-variable function">SignupForm</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>error<span class="token punctuation">,</span> setError<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>
+    <span class="token operator">&lt;</span>form name<span class="token operator">=</span><span class="token string">&quot;signup&quot;</span> onsubmit<span class="token operator">=</span><span class="token punctuation">{</span> ev <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token keyword">const</span> form <span class="token operator">=</span> ev<span class="token punctuation">.</span>currentTarget
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>form<span class="token punctuation">.</span>password<span class="token punctuation">.</span>value <span class="token operator">!==</span> form<span class="token punctuation">.</span>repeatpassword<span class="token punctuation">.</span>value<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token function">setError</span><span class="token punctuation">(</span><span class="token string">&apos;new password fields don&apos;</span>t match<span class="token punctuation">)</span>
+        <span class="token punctuation">}</span>
+        <span class="token comment">//....</span>
+    <span class="token punctuation">}</span><span class="token punctuation">}</span><span class="token operator">&gt;</span>
+        <span class="token punctuation">{</span>error <span class="token operator">&amp;&amp;</span> <span class="token punctuation">(</span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>p</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>error<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span><span class="token punctuation">{</span>error<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>p</span><span class="token punctuation">&gt;</span></span>
+        <span class="token punctuation">)</span><span class="token punctuation">}</span>
+        Name<span class="token punctuation">:</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span> <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>text<span class="token punctuation">&quot;</span></span> <span class="token attr-name">name</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>username<span class="token punctuation">&quot;</span></span> <span class="token punctuation">/&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>br</span> <span class="token punctuation">/&gt;</span></span>
+        Age<span class="token punctuation">:</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span> <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>number<span class="token punctuation">&quot;</span></span> <span class="token attr-name">name</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>age<span class="token punctuation">&quot;</span></span> <span class="token punctuation">/&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>br</span> <span class="token punctuation">/&gt;</span></span>
+        Email<span class="token punctuation">:</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span> <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>email<span class="token punctuation">&quot;</span></span> <span class="token attr-name">name</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>email<span class="token punctuation">&quot;</span></span> <span class="token punctuation">/&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>br</span> <span class="token punctuation">/&gt;</span></span>
+        Password<span class="token punctuation">:</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span> <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>password<span class="token punctuation">&quot;</span></span> <span class="token attr-name">name</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>password<span class="token punctuation">&quot;</span></span> <span class="token punctuation">/&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>br</span> <span class="token punctuation">/&gt;</span></span>
+        Repet password<span class="token punctuation">:</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span> <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>password<span class="token punctuation">&quot;</span></span> <span class="token attr-name">name</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>repeatpass<span class="token punctuation">&quot;</span></span> <span class="token punctuation">/&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>br</span> <span class="token punctuation">/&gt;</span></span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span> <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>submit<span class="token punctuation">&quot;</span></span> <span class="token attr-name">value</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>Register<span class="token punctuation">&quot;</span></span> <span class="token punctuation">/&gt;</span></span>
+     <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>form</span><span class="token punctuation">&gt;</span></span>
+<span class="token punctuation">)</span>
+</code></pre>
+<p>Immediately, we see a problem with this. If the user enters mismatching passwords, we will set an error, the form will rerender and we will see the error -- but whatever the user had entered in the name, age and email fields will be gone. The only way to preserve the values of those fields, is to keep them in the state, so that we can rerender them.</p>
+<p>Let&apos;s try this approach: </p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token keyword">const</span> <span class="token function-variable function">SignupForm</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>
+    error<span class="token punctuation">,</span> setError
+    username<span class="token punctuation">,</span> setUsername<span class="token punctuation">,</span>
+    age<span class="token punctuation">,</span> setAge<span class="token punctuation">,</span>
+    email<span class="token punctuation">,</span> setEmail<span class="token punctuation">,</span>
+    password<span class="token punctuation">,</span> setPassword
+    password2<span class="token punctuation">,</span> setPassword2
+<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>
+    <span class="token operator">&lt;</span>form name<span class="token operator">=</span><span class="token string">&quot;signup&quot;</span> onsubmit<span class="token operator">=</span><span class="token punctuation">{</span> ev <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>
+            password <span class="token operator">&amp;&amp;</span>
+            password2 <span class="token operator">&amp;&amp;</span>
+            password <span class="token operator">!==</span> password2
+        <span class="token punctuation">)</span>  <span class="token punctuation">{</span>
+            <span class="token function">setError</span><span class="token punctuation">(</span><span class="token string">&apos;new password fields don&apos;</span>t match<span class="token punctuation">)</span>
+        <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{</span>
+            <span class="token comment">//do the submit thing.</span>
+
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">}</span><span class="token operator">&gt;</span>
+        <span class="token punctuation">{</span>error <span class="token operator">&amp;&amp;</span> <span class="token punctuation">(</span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>p</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>error<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span><span class="token punctuation">{</span>error<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>p</span><span class="token punctuation">&gt;</span></span>
+        <span class="token punctuation">)</span><span class="token punctuation">}</span>
+
+        Name<span class="token punctuation">:</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span>
+            <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>text<span class="token punctuation">&quot;</span></span>
+            <span class="token attr-name">name</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>username<span class="token punctuation">&quot;</span></span>
+            <span class="token attr-name">value</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>username<span class="token punctuation">}</span></span>
+            <span class="token attr-name">onchange</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>ev <span class="token operator">=&gt;</span> <span class="token function">setUsername</span><span class="token punctuation">(</span>ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>value<span class="token punctuation">)</span><span class="token punctuation">}</span></span>
+        <span class="token punctuation">/&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>br</span> <span class="token punctuation">/&gt;</span></span>
+
+        Age<span class="token punctuation">:</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span>
+            <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>number<span class="token punctuation">&quot;</span></span>
+            <span class="token attr-name">name</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>age<span class="token punctuation">&quot;</span></span>
+            <span class="token attr-name">value</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>age<span class="token punctuation">}</span></span>
+            <span class="token attr-name">onchange</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>ev <span class="token operator">=&gt;</span> <span class="token function">setAge</span><span class="token punctuation">(</span>ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>value<span class="token punctuation">)</span><span class="token punctuation">}</span></span>
+        <span class="token punctuation">/&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>br</span> <span class="token punctuation">/&gt;</span></span>
+
+        Email<span class="token punctuation">:</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span>
+            <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>email<span class="token punctuation">&quot;</span></span>
+            <span class="token attr-name">name</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>email<span class="token punctuation">&quot;</span></span>
+            <span class="token attr-name">value</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>email<span class="token punctuation">}</span></span>
+            <span class="token attr-name">onchange</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>ev <span class="token operator">=&gt;</span> <span class="token function">setEmail</span><span class="token punctuation">(</span>ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>value<span class="token punctuation">)</span><span class="token punctuation">}</span></span>
+        <span class="token punctuation">/&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>br</span> <span class="token punctuation">/&gt;</span></span>
+
+        Password<span class="token punctuation">:</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span>
+            <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>password<span class="token punctuation">&quot;</span></span>
+            <span class="token attr-name">name</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>password<span class="token punctuation">&quot;</span></span>
+            <span class="token attr-name">value</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>password<span class="token punctuation">}</span></span>
+            <span class="token attr-name">onchange</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>ev <span class="token operator">=&gt;</span> <span class="token function">setPassword</span><span class="token punctuation">(</span>ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>value<span class="token punctuation">)</span><span class="token punctuation">}</span></span>
+        <span class="token punctuation">/&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>br</span> <span class="token punctuation">/&gt;</span></span>
+
+        Repet password<span class="token punctuation">:</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span>
+            <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>password<span class="token punctuation">&quot;</span></span>
+            <span class="token attr-name">name</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>password2<span class="token punctuation">&quot;</span></span>
+            <span class="token attr-name">value</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>password2<span class="token punctuation">}</span></span>
+            <span class="token attr-name">onchange</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>ev <span class="token operator">=&gt;</span> <span class="token function">setPassword2</span><span class="token punctuation">(</span>ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>value<span class="token punctuation">)</span><span class="token punctuation">}</span></span>
+        <span class="token punctuation">/&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>br</span> <span class="token punctuation">/&gt;</span></span>
+
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span> <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>submit<span class="token punctuation">&quot;</span></span> <span class="token attr-name">value</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>Register<span class="token punctuation">&quot;</span></span> <span class="token punctuation">/&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>form</span><span class="token punctuation">&gt;</span></span>
+<span class="token punctuation">)</span>
+</code></pre>
+<p>Since we know enough to render the error immediately once the user has enetered mismatching passwords, why wait until <code>onsubmit</code>? Instead, let&apos;s move the validation to an <em>action</em> we call, every time the user updates one of the fields:</p>
+<pre class="language-js"><code class="language-js">
+<span class="token keyword">const</span> state <span class="token operator">=</span> <span class="token punctuation">{</span>
+    username<span class="token punctuation">:</span> <span class="token string">&apos;&apos;</span><span class="token punctuation">,</span>
+    age<span class="token punctuation">:</span> <span class="token number">0</span><span class="token punctuation">,</span>
+    email<span class="token punctuation">:</span> <span class="token string">&apos;&apos;</span><span class="token punctuation">,</span>
+    password<span class="token punctuation">:</span> <span class="token string">&apos;&apos;</span><span class="token punctuation">,</span>
+    password2<span class="token punctuation">:</span> <span class="token string">&apos;&apos;</span>
+<span class="token punctuation">}</span><span class="token punctuation">,</span>
+
+<span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token punctuation">{</span>
+    setUsername <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+
+<span class="token punctuation">}</span>
+</code></pre>
+
+    </article>
+</main>
+</body>  
+</html>

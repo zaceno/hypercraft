@@ -5,6 +5,7 @@ blurb: Stateful components with hyperapp - how to do it, and when you might want
 keywords: components, state, lifecycle, app, reuse
 ---
 
+> UPDATE 2017-04-07: The "nestable" pattern described below, is no longer quite the same as what I use in my [hyperapp-nestable](https://github.com/zaceno/hyperapp-nestable). The basic idea is the same, but I've changed how I handle props and children passed to the component from its parent.
 
 ## A frequently asked question
 

@@ -11,7 +11,7 @@ const assets = require('metalsmith-assets')
 const dateFormat = require('metalsmith-date-formatter')
 
 const SRC = './src'
-const DEST = './public'
+const DEST = './docs'
 const META = {
     site: {
         name: 'hypercraft',

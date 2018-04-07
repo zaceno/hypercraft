@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-113320588-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-113320588-1');
+    </script>
+    <!-- //Google Analytics -->
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <link rel="stylesheet" href="../../assets/prism.css" />
+    <link rel="stylesheet" href="../../assets/site.css" />
+    <title>Memoization - Hypercraft</title>
+    <meta name="keywords" content="hyperapp, javascript, js, tutorial, tips, patterns, memoization, optimation, view, component">
+    <meta name="description" content="An optimization technique for faster renders and making sure &#x60;onupdate&#x60; is only called when something actually changed." />
+  </head>
+  <body>
+    <header>
+      <a class="logo" href="../../index.html">
+        <h1>Hypercraft</h1>
+        <p>Hyperapp tricks, patterns and pitfalls</p>
+      </a>
+      <ul class="nav">
+        <li><a href="../../index.html">Index</a></li>
+        <li><a href="../../about/index.html">About</a></li>
+      </ul>
+    </header>
+    <main>
+    <article>
+      <h1>Memoization</h1>
+      <div class="meta">An optimization technique for faster renders and making sure &#x60;onupdate&#x60; is only called when something actually changed.</div>
+      <p>The general idea with memoization, is to avoid expensive calculations in functions by keeping a memo of the result of previous calls. Whenever you call a memoized function with the same arguments as a previous time, we skip over the actual calculation and simply return the previously calculated result</p>
+<p>So memoization is best used only for <em>pure</em> functions. Functions who&apos;se only output/effect is the returned value of a calculation, which is only based on input arguments. Also memoization is not free. There is a cost involved in comparing the input values to previous ones, and to storing the old results. You should chose a method apprioriate to the types of input values you&apos;ll have, and the calculations involved.</p>
+<h2 id="memoizing-views">Memoizing views</h2>
+<p>If you&apos;re composing your main view from sub-views, as described <a href="https://zaceno.github.io/hypercraft/post/modular-apps/">here</a> (or similar), then your sub-views are pure functions which take a part of the state tree under a namespace: <code>const fooView = fooModule.view(state.foo, actions.foo))</code> </p>
+<p>Because of the way hyperapp&apos;s state-management works, <code>state.foo</code> will be a new instance in the view <em>only</em> if some state has changed under <code>state.foo</code> -- otherwise, it will be the <em>same object instance</em> as the last time the view was called. This offers a perfect opportunity for memoization: the subview represents a significant chunk of the UI, and checking wether the input values have changed is dirt cheap: it&apos;s simply a matter of checking if <code>prevState === state</code>.</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">var</span> prevState
+<span class="token keyword">var</span> memo
+<span class="token keyword">const</span> <span class="token function-variable function">memoizeView</span> <span class="token operator">=</span> view <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>prevState <span class="token operator">===</span> state<span class="token punctuation">)</span> <span class="token keyword">return</span> memo
+    prevState <span class="token operator">=</span> state
+    memo <span class="token operator">=</span> <span class="token function">view</span><span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span>
+    <span class="token keyword">return</span> memo
+<span class="token punctuation">}</span>
+
+<span class="token operator">...</span>
+
+fooModule<span class="token punctuation">.</span>view <span class="token operator">=</span> <span class="token function">memoizeView</span><span class="token punctuation">(</span>fooModule<span class="token punctuation">.</span>view<span class="token punctuation">)</span>
+</code></pre>
+<h2 id="memoizing-components">Memoizing Components</h2>
+<p>Memoizing components is a bit more involved than the example above, because</p>
+<ul>
+<li><p>components take an input argument wich is an object of <code>attributes</code>, and unlike the <code>state</code> of subviews, you&apos;ll typically need to check the properties of the input object, to determine if the arguments have changed </p>
+</li>
+<li><p>unlike subviews, a component is typically called many times every render. This means it&apos;s not enough to remember the input from just the previous call. You need to keep track of all the previous inputs and results to reap the benefits of memoization.</p>
+</li>
+</ul>
+<p>Thankfully are plenty of memoization implementations out there which take care of this for you, so you don&apos;t need to write it yourself. A popular one is <a href="https://github.com/planttheidea/moize">moize</a></p>
+<h3 id="speeds-up-rendering">Speeds up rendering</h3>
+<p>The main reason you&apos;d want to memoize components, is because during the <code>patch</code> operation (where hyperapp is busy comparing the old virtual-DOM to the new one, in order to figure out how to change the DOM), whenever a virtual node is encounterd which is the <em>same instance</em> as the previous one, it simply skips over that entire branch of the virtual-dom-tree. (See the discussion <a href="https://zaceno.github.io/hypercraft/static-vnodes/">here</a>).</p>
+<p>So, for a memoized component, not only do you not have to recreate the virtual nodes again -- but you <em>also</em> spare the <code>patch</code> algorithm from processing that part of the virtual tree again. For big, complicated components this might mean <em>significantly</em> faster rendering.</p>
+<h3 id="onupdate-only-when-component-attributes-have-changed">Onupdate only when component-attributes have changed</h3>
+<p>A common pitfall/surprise beginning Hyperapp:ers encounter is that if you have a component that produces a vnode with an <code>onupdate</code> lifecycle-event-handler, they often expect it will only run when one of the components attributes has changed. But this is not the case of course. <code>onupdate</code> handlers are run every render.</p>
+<p><em>But</em> since that happens as part of the <code>patch</code> process, if you memoize the component, you get the expected behavior, because <code>patch</code> will only process the vnodes (and call lifecycle events) if something has <em>actually</em> changed.</p>
+
+    </article>
+</main>
+</body>  
+</html>

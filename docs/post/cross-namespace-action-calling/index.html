@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-113320588-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-113320588-1');
+    </script>
+    <!-- //Google Analytics -->
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <link rel="stylesheet" href="../../assets/prism.css" />
+    <link rel="stylesheet" href="../../assets/site.css" />
+    <title>Cross-namespace Action-calling - Hypercraft</title>
+    <meta name="keywords" content="hyperapp, javascript, js, tutorial, tips, patterns, slices, namespace, namespaces, actions, action">
+    <meta name="description" content="How can an action in a namespace (a k a &quot;slice&quot;) call an action outside the namespace?" />
+  </head>
+  <body>
+    <header>
+      <a class="logo" href="../../index.html">
+        <h1>Hypercraft</h1>
+        <p>Hyperapp tricks, patterns and pitfalls</p>
+      </a>
+      <ul class="nav">
+        <li><a href="../../index.html">Index</a></li>
+        <li><a href="../../about/index.html">About</a></li>
+      </ul>
+    </header>
+    <main>
+    <article>
+      <h1>Cross-namespace Action-calling</h1>
+      <div class="meta">How can an action in a namespace (a k a &quot;slice&quot;) call an action outside the namespace?</div>
+      <p>Using namespaces (&quot;slices&quot;) for state lets you avoid very long state-property names. Scoping actions to a namespace makes it easy to update it. See my article on <a href="https://zaceno.github.io/hypercraft/post/modular-apps/">Modular Apps</a> if this is the first you&apos;re hearing about this.</p>
+<p>Namespaces are great, but also restrict actions <em>in</em> a namespace, from calling other actions <em>outside</em> it. And sometimes you really need that.</p>
+<p>Usually the need is of the form: &quot;When X happens over here, then Y should happen over there&quot;. For example, one namespace might be for syncing data to and from the server, while another is for editing the data. When the data is changed, you want it synced back to the server.</p>
+<p>So how do we solve situations like these?</p>
+<p>First, ask yourself if the namespace-separation really is helpful. If you can put dependent actions together in the same namespace the problem goes away.</p>
+<p>But flattening the state doesn&apos;t always make things better.</p>
+<p>You can&apos;t call &quot;Y&quot; from the action where &quot;X&quot; happens. The view, on the other hand, has access to all the actions. You <em>could</em> put the &quot;when X then Y&quot;-logic in the view.</p>
+<p>But you want to avoid mixing business-logic and view-logic.</p>
+<p>You could use a third-party event-emitter-library to wire the actions together. It&apos;s a pretty good solution that goes naturally with the phrasing of the problem as &quot; When X ... then Y...&quot;.</p>
+<p>But using event emitters can get pretty confusing, and debugging them is difficult.</p>
+<p>The pattern I like to use builds on the initialization pattern outlined <a href="https://zaceno.github.io/hypercraft/post/initialization">here</a>. The essence of it is: if actions in a namespace need to call outside actions, pass those outside actions to the <code>init</code> action of the namespace. It stores them in the <em>state</em>, where they can be called as needed.</p>
+<p>Looking at the example I mentioned above: You have a namespace <code>backend</code> which loads and saves data.</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token punctuation">{</span>
+    foo<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        load<span class="token punctuation">:</span> data <span class="token operator">=&gt;</span> <span class="token operator">...</span><span class="token punctuation">,</span>
+        <span class="token operator">...</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    bar<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        load<span class="token punctuation">:</span> data <span class="token operator">=&gt;</span> <span class="token operator">...</span><span class="token punctuation">,</span>
+        <span class="token operator">...</span>
+    <span class="token punctuation">}</span>
+    backend<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        fetch<span class="token punctuation">:</span> id <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+            <span class="token function">fetch</span><span class="token punctuation">(</span><span class="token template-string"><span class="token string">`https://example.com/api/</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>id<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">`</span></span><span class="token punctuation">)</span>
+            <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>data <span class="token operator">=&gt;</span> data<span class="token punctuation">.</span><span class="token function">json</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+            <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">{</span>foo<span class="token punctuation">,</span> bar<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+                <span class="token comment">/*
+                    Now what? How do we get
+                    to: actions.foo.load(foo)?
+                */</span>
+            <span class="token punctuation">}</span><span class="token punctuation">)</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>We can make sure that <code>actions.backend.fetch</code> knows how to call the <code>load</code> actions of <code>foo</code> and <code>bar</code>, by passing them to it at init-time:</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token punctuation">{</span>
+    init<span class="token punctuation">:</span> _ <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>_<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        actions<span class="token punctuation">.</span>backend<span class="token punctuation">.</span><span class="token function">init</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+            onfetch<span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>foo<span class="token punctuation">,</span> bar<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+                actions<span class="token punctuation">.</span>foo<span class="token punctuation">.</span><span class="token function">load</span><span class="token punctuation">(</span>foo<span class="token punctuation">)</span>
+                actions<span class="token punctuation">.</span>bar<span class="token punctuation">.</span><span class="token function">load</span><span class="token punctuation">(</span>bar<span class="token punctuation">)</span>
+            <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    foo<span class="token punctuation">:</span> <span class="token operator">...</span><span class="token punctuation">,</span>
+    bar<span class="token punctuation">:</span> <span class="token operator">...</span><span class="token punctuation">,</span>
+    backend<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        init<span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>onfetch<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>onfetch<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+        fetch<span class="token punctuation">:</span> id <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+            <span class="token function">fetch</span><span class="token punctuation">(</span><span class="token template-string"><span class="token string">`https://example.com/api/</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>id<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">`</span></span><span class="token punctuation">)</span>
+            <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>data <span class="token operator">=&gt;</span> data<span class="token punctuation">.</span><span class="token function">json</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+            <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>state<span class="token punctuation">.</span>onfetch<span class="token punctuation">)</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>Also, any time the state in <code>foo</code> or <code>bar</code> changes, we want to persist the data back to the server:</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token punctuation">{</span>
+    foo<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        _set<span class="token punctuation">:</span> s <span class="token operator">=&gt;</span> s<span class="token punctuation">,</span>
+        setX<span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+            actions<span class="token punctuation">.</span><span class="token function">_set</span><span class="token punctuation">(</span><span class="token punctuation">{</span>x<span class="token punctuation">}</span><span class="token punctuation">)</span>
+            <span class="token comment">/*
+                We changed the state of foo.X
+                Now how do we make backend save {foo, bar}?
+            */</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    backend<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        save<span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>foo<span class="token punctuation">,</span> bar<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token operator">...</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>Same thing:</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token punctuation">{</span>
+    getState<span class="token punctuation">:</span> _ <span class="token operator">=&gt;</span> s <span class="token operator">=&gt;</span> s<span class="token punctuation">,</span>
+    init<span class="token punctuation">:</span> _ <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>_<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        actions<span class="token punctuation">.</span>backend<span class="token punctuation">.</span><span class="token function">init</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+            onfetch<span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>foo<span class="token punctuation">,</span> bar<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+                actions<span class="token punctuation">.</span>foo<span class="token punctuation">.</span><span class="token function">load</span><span class="token punctuation">(</span>foo<span class="token punctuation">)</span>
+                actions<span class="token punctuation">.</span>bar<span class="token punctuation">.</span><span class="token function">load</span><span class="token punctuation">(</span>bar<span class="token punctuation">)</span>
+            <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+        <span class="token keyword">const</span> <span class="token function-variable function">doSave</span> <span class="token operator">=</span> _ <span class="token operator">=&gt;</span> actions<span class="token punctuation">.</span>backend<span class="token punctuation">.</span><span class="token function">save</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+            foo<span class="token punctuation">:</span> actions<span class="token punctuation">.</span><span class="token function">getState</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span>foo<span class="token punctuation">,</span>
+            bar<span class="token punctuation">:</span> actions<span class="token punctuation">.</span><span class="token function">getState</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span>bar<span class="token punctuation">,</span>
+        <span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+        actions<span class="token punctuation">.</span>foo<span class="token punctuation">.</span><span class="token function">init</span><span class="token punctuation">(</span><span class="token punctuation">{</span>onchange<span class="token punctuation">:</span> doSave<span class="token punctuation">}</span><span class="token punctuation">)</span>
+        actions<span class="token punctuation">.</span>bar<span class="token punctuation">.</span><span class="token function">init</span><span class="token punctuation">(</span><span class="token punctuation">{</span>onchange<span class="token punctuation">:</span> doSave<span class="token punctuation">}</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    foo<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        init<span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>onchange<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>onchange<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+        _set<span class="token punctuation">:</span> s <span class="token operator">=&gt;</span> s<span class="token punctuation">,</span>
+        setX<span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+            actions<span class="token punctuation">.</span><span class="token function">_set</span><span class="token punctuation">(</span><span class="token punctuation">{</span>x<span class="token punctuation">}</span><span class="token punctuation">)</span>
+            state<span class="token punctuation">.</span><span class="token function">onchange</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token operator">...</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    bar<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token comment">/*... similarly ...*/</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    backend<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        init<span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>onfetch<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>onfetch<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+        save<span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>foo<span class="token punctuation">,</span> bar<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token operator">...</span><span class="token punctuation">,</span>
+        <span class="token operator">...</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>There are a downsides to this too, of course. There will be functions stored in the state, which some dislike. It doesn&apos;t look especially clean or elegant. Still, the debugability and the fact that all dependencies between slices are kept out of the view makes it my preferred approach to this type of problem. </p>
+
+    </article>
+</main>
+</body>  
+</html>

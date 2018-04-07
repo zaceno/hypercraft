@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-113320588-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-113320588-1');
+    </script>
+    <!-- //Google Analytics -->
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <link rel="stylesheet" href="../../assets/prism.css" />
+    <link rel="stylesheet" href="../../assets/site.css" />
+    <title>Modular Apps - Hypercraft</title>
+    <meta name="keywords" content="hyperapp, javascript, js, tutorial, tips, patterns, modules, modularization, loose coupling, slices, scope, actions, view, views">
+    <meta name="description" content="The key to building maintainable, large-scale apps is to break them down into small self-contained &amp; reusable modules. But how?" />
+  </head>
+  <body>
+    <header>
+      <a class="logo" href="../../index.html">
+        <h1>Hypercraft</h1>
+        <p>Hyperapp tricks, patterns and pitfalls</p>
+      </a>
+      <ul class="nav">
+        <li><a href="../../index.html">Index</a></li>
+        <li><a href="../../about/index.html">About</a></li>
+      </ul>
+    </header>
+    <main>
+    <article>
+      <h1>Modular Apps</h1>
+      <div class="meta">The key to building maintainable, large-scale apps is to break them down into small self-contained &amp; reusable modules. But how?</div>
+      <p>As your app grows larger with more features &amp; behaviors, keeping it all inside a single file eventually becomes untenable. The solution is to <em>modularize</em> -- i.e. to break your app into <em>modules</em>. A module is a file which exports some &quot;part&quot; of your app. The main file <em>imports</em> these parts and assembles them into the full app definition. Modules may in turn be assembled from sub-modules if necessary, and so on.</p>
+<p>In order to assemble the modules into an app definition <em>in some general way</em>, the modules must adhere to some conventions / patterns. For the modularization to work -- to actually be beneficial -- some strategy for what to break apart and what to keep together is necessary.</p>
+<p>This article outlines <em>one</em> such method. It&apos;s a method that&apos;s worked well for me, but there are certainly other possibilities. Regardless of your preference, the techniques might be of interest for devising your own system.</p>
+<p>Let&apos;s start by examining the problem we&apos;re trying to solve:</p>
+<h2 id="the-problem">The Problem</h2>
+<h3 id="hunt-n-peck">Hunt-n-peck</h3>
+<p>First, consider the mental effort of maintaining an already large single-file-app.</p>
+<p>Your app&apos;s behavior is made up of various featurs/behaviors in some combination. When you go to change a particular behavior, it is spread out in various parts of the state, actions and view respectively. You&apos;ll need to move around a lot in the file, looking for where to make changes while mentally filtering out the code that isn&apos;t relevant.</p>
+<h3 id="so-much-foo-">So. much. foo...</h3>
+<p>As second problem is the problem of an overcrowded namespace. There may be several features that require a state-property called <code>selected</code>, and an action called <code>select</code>. </p>
+<p>Once your features start multiplying, you need to start adding disambiguating prefixes/suffixes to your states &amp; actions such as <code>selectedFoo</code> and <code>selectFoo: x =&gt; ({selectedFoo: x})</code>. And a dropdown container for selecting a foo might look like this:</p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>select</span> <span class="token attr-name">onchange</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>ev <span class="token operator">=&gt;</span> actions<span class="token punctuation">.</span><span class="token function">selectFoo</span><span class="token punctuation">(</span>ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>value<span class="token punctuation">)</span><span class="token punctuation">}</span></span><span class="token punctuation">&gt;</span></span>
+<span class="token punctuation">{</span>state<span class="token punctuation">.</span>fooOptions<span class="token punctuation">.</span><span class="token function">map</span><span class="token punctuation">(</span>opt <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>option</span> <span class="token attr-name">selected</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>opt<span class="token operator">===</span>state<span class="token punctuation">.</span>selectedFoo<span class="token punctuation">}</span></span><span class="token punctuation">&gt;</span></span><span class="token punctuation">{</span>opt<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>option</span><span class="token punctuation">&gt;</span></span>
+<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">}</span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>select</span><span class="token punctuation">&gt;</span></span>
+</code></pre>
+<p>So much foo! The problem of all state and action sharing a namespace leads to verbose code with lots of repetitive typing, and further mental strain when scanning for the place to make your changes.</p>
+<h3 id="all-together-now-">All together now...</h3>
+<p>A third problem is distributing the development work across a team. If everyone needs to be working in the same files the whole time, they are bound to get in eachother&apos;s way.</p>
+<h2 id="general-strategies">General strategies</h2>
+<h3 id="slice-it-vertically">Slice it vertically</h3>
+<p>By breaking your app apart in modules that each encapsulate <em>a single feature</em> (or behavior), you ensure that when you go to fix that feature, everything you need is  in one place -- <em>and nothing you don&apos;t</em>. No more scouting around thousands of lines of code for the one spot to make your fix.</p>
+<p>Encapsulating a feature means a module needs to hold the parts of the <em>state, actions and view</em> relevant to it.</p>
+<h3 id="loose-coupling">Loose Coupling</h3>
+<p>By slicing &quot;vertically&quot; (i.e. by features/behaviors) the modules tend to become <em>loosely coupled</em> -- meaning they don&apos;t need to interact very much with eachother. This should always be the goal. </p>
+<p>Those interactions that <em>are</em> necessary, are typically handled by having a parent module coordinating the interactions among child modules. Generally speaking: the looser the coupling, the <em>flatter the module tree</em> -- which makes debugging/developing the interactions between modules easier.</p>
+<h3 id="namespacing">Namespacing</h3>
+<p>Each module should be free to name it&apos;s state and actions and other things whatever it wants (and however short!), without fear of the name colliding with something outside itself.</p>
+<p>State, actions and other stuff (...I&apos;ll get to that) in <em>child</em> modules should be accessible via namespaces defined in the parent module.</p>
+<p>Enough theory! How do we achieve this?</p>
+<h2 id="slices-to-the-rescue-">Slices to the rescue!</h2>
+<p>Hyperapp has a little-advertised feature, often referred to as &quot;slices&quot; (TBH I&apos;ve never really liked that name), which works like this:</p>
+<ul>
+<li>Actions can be defined under a multi-leveled namespace.</li>
+<li>Actions in a namespace:<ul>
+<li>are only provided the state from the <em>corresponding namespace</em> in the state tree,</li>
+<li>and only the actions under the same namespace in the action tree.</li>
+<li>their returned partial state updates the state tree under the <em>corresponding namespace</em></li>
+</ul>
+</li>
+</ul>
+<pre class="language-js"><code class="language-js">
+<span class="token keyword">const</span> state <span class="token operator">=</span> <span class="token punctuation">{</span>
+    foo<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        value<span class="token punctuation">:</span> <span class="token number">3</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    baz<span class="token punctuation">:</span> <span class="token number">4</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token punctuation">{</span>
+    foo<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        increment<span class="token punctuation">:</span> by <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+            <span class="token comment">/*
+                Here, state will be the object
+                at state.foo,
+                i.e: {value: 3}
+
+                Also, actions will be the actions
+                at actions.foo, i.e:
+                {
+                    increment: ..,,
+                    decrement: ...,
+                }
+
+                Returning {value: something} from
+                this action updates the state immutably
+                so that state.foo.value === something
+            */</span>
+            <span class="token keyword">return</span> <span class="token punctuation">{</span> value<span class="token punctuation">:</span> state<span class="token punctuation">.</span>value <span class="token operator">+</span> by <span class="token punctuation">}</span> 
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        decrement<span class="token punctuation">:</span> by <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+            <span class="token keyword">return</span> <span class="token punctuation">{</span> value<span class="token punctuation">:</span> state<span class="token punctuation">.</span>value <span class="token operator">-</span> by <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    setBaz<span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>baz<span class="token punctuation">:</span> x<span class="token punctuation">}</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>In other words: this feature is exactly what we need for the module-namespacing issue. We could define a counter module in a file <code>counter.js</code> such as:</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">export</span> <span class="token keyword">default</span> initial <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>
+    state<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        value<span class="token punctuation">:</span> initial
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    actions<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        increment<span class="token punctuation">:</span> by <span class="token operator">=&gt;</span> state <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>value<span class="token punctuation">:</span> state<span class="token punctuation">.</span>value <span class="token operator">+</span> by<span class="token punctuation">}</span><span class="token punctuation">)</span>
+        decrement<span class="token punctuation">:</span> by <span class="token operator">=&gt;</span> state <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>value<span class="token punctuation">:</span> state<span class="token punctuation">.</span>value <span class="token operator">-</span> by<span class="token punctuation">}</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+<p>... and then instantiate and mount the module in a parent module or the main app, like so:</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">import</span> counter <span class="token keyword">from</span> <span class="token string">&apos;./counter&apos;</span>
+
+<span class="token keyword">const</span> foo <span class="token operator">=</span> <span class="token function">counter</span><span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">)</span>
+
+<span class="token keyword">const</span> state <span class="token operator">=</span> <span class="token punctuation">{</span>
+    foo<span class="token punctuation">:</span> foo<span class="token punctuation">.</span>state<span class="token punctuation">,</span>
+    baz<span class="token punctuation">:</span> <span class="token number">4</span><span class="token punctuation">,</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token punctuation">{</span>
+    foo<span class="token punctuation">:</span> foo<span class="token punctuation">.</span>actions<span class="token punctuation">,</span>
+    setBaz<span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>baz<span class="token punctuation">:</span> x<span class="token punctuation">}</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+<span class="token operator">...</span>
+</code></pre>
+<h2 id="modularizing-the-view-">Modularizing the view.</h2>
+<p>&quot;Slices&quot; allows us to create modules that encapsulate related state and actions. But what about the related parts of the view?</p>
+<p>Imagine you have this <code>baroptions.js</code> module:</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">export</span> <span class="token keyword">default</span> _ <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>
+    state<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        selected<span class="token punctuation">:</span> <span class="token keyword">null</span><span class="token punctuation">,</span>
+        options<span class="token punctuation">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    actions<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        addOption<span class="token punctuation">:</span> opt <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>options<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>options<span class="token punctuation">:</span> options<span class="token punctuation">.</span><span class="token function">concat</span><span class="token punctuation">(</span>opt<span class="token punctuation">)</span><span class="token punctuation">}</span><span class="token punctuation">)</span>
+        select<span class="token punctuation">:</span> opt <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>selected<span class="token punctuation">:</span> opt<span class="token punctuation">}</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+<p>and in the view you have some parts that are related to your baroptions module:</p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token keyword">const</span> <span class="token function-variable function">view</span> <span class="token operator">=</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>main</span><span class="token punctuation">&gt;</span></span>
+    <span class="token operator">...</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>h1</span><span class="token punctuation">&gt;</span></span>Bar<span class="token punctuation">:</span> <span class="token punctuation">{</span>state<span class="token punctuation">.</span>bar<span class="token punctuation">.</span>selected<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>h1</span><span class="token punctuation">&gt;</span></span>
+    <span class="token operator">...</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>select</span> <span class="token attr-name">onchange</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>ev <span class="token operator">=&gt;</span> actions<span class="token punctuation">.</span>bar<span class="token punctuation">.</span><span class="token function">select</span><span class="token punctuation">(</span>ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>value<span class="token punctuation">)</span><span class="token punctuation">}</span></span><span class="token punctuation">&gt;</span></span>
+    <span class="token punctuation">{</span>state<span class="token punctuation">.</span>bar<span class="token punctuation">.</span>options<span class="token punctuation">.</span><span class="token function">map</span><span class="token punctuation">(</span>opt <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>option</span> <span class="token attr-name">selected</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>actions<span class="token punctuation">.</span>bar<span class="token punctuation">.</span>selected<span class="token operator">===</span>opt<span class="token punctuation">}</span></span><span class="token punctuation">&gt;</span></span><span class="token punctuation">{</span>opt<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>option</span><span class="token punctuation">&gt;</span></span>
+    <span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">}</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>select</span><span class="token punctuation">&gt;</span></span>
+    <span class="token operator">...</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span>
+        <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>text<span class="token punctuation">&quot;</span></span>
+        <span class="token attr-name">onchange</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>ev <span class="token operator">=&gt;</span> actions<span class="token punctuation">.</span>bar<span class="token punctuation">.</span><span class="token function">addOption</span><span class="token punctuation">(</span>ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>value<span class="token punctuation">)</span><span class="token punctuation">}</span></span>
+    <span class="token punctuation">/&gt;</span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>main</span><span class="token punctuation">&gt;</span></span>
+</code></pre>
+<h3 id="reusable-components">Reusable components</h3>
+<p>Now, the first thing you&apos;re recommended to do, is to reduce repetitions by creating reusable components. A dropdown is something we might want to use elsewhere, so making a generic dropdown component makes sense:</p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token keyword">export</span> <span class="token keyword">default</span> props <span class="token operator">=&gt;</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>select</span> <span class="token attr-name">onchange</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>ev <span class="token operator">=&gt;</span> props<span class="token punctuation">.</span><span class="token function">onselect</span><span class="token punctuation">(</span>ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>value<span class="token punctuation">)</span><span class="token punctuation">}</span></span><span class="token punctuation">&gt;</span></span>
+    <span class="token punctuation">{</span>options<span class="token punctuation">.</span><span class="token function">map</span><span class="token punctuation">(</span>opt <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>option</span> <span class="token attr-name">selected</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>props<span class="token punctuation">.</span>selected <span class="token operator">===</span> opt<span class="token punctuation">}</span></span><span class="token punctuation">&gt;</span></span><span class="token punctuation">{</span>opt<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>option</span><span class="token punctuation">&gt;</span></span>
+    <span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">}</span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>select</span><span class="token punctuation">&gt;</span></span>
+</code></pre>
+<p>Now the view can be written</p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token keyword">import</span> DropDown <span class="token keyword">from</span> <span class="token string">&apos;./dropdown&apos;</span>
+<span class="token operator">...</span>
+<span class="token keyword">const</span> <span class="token function-variable function">view</span> <span class="token operator">=</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>main</span><span class="token punctuation">&gt;</span></span>
+    <span class="token operator">...</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>h1</span><span class="token punctuation">&gt;</span></span>Bar<span class="token punctuation">:</span> <span class="token punctuation">{</span>state<span class="token punctuation">.</span>bar<span class="token punctuation">.</span>selected<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>h1</span><span class="token punctuation">&gt;</span></span>
+    <span class="token operator">...</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>DropDown</span>
+        <span class="token attr-name">options</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>state<span class="token punctuation">.</span>bar<span class="token punctuation">.</span>options<span class="token punctuation">}</span></span>
+        <span class="token attr-name">onselec</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>actions<span class="token punctuation">.</span>bar<span class="token punctuation">.</span>select<span class="token punctuation">}</span></span>
+        <span class="token attr-name">selected</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>state<span class="token punctuation">.</span>bar<span class="token punctuation">.</span>selected<span class="token punctuation">}</span></span>
+    <span class="token punctuation">/&gt;</span></span>
+    <span class="token operator">...</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span>
+        <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>text<span class="token punctuation">&quot;</span></span>
+        <span class="token attr-name">onchange</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>ev <span class="token operator">=&gt;</span> actions<span class="token punctuation">.</span>bar<span class="token punctuation">.</span><span class="token function">addOption</span><span class="token punctuation">(</span>ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>value<span class="token punctuation">)</span><span class="token punctuation">}</span></span>
+    <span class="token punctuation">/&gt;</span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>main</span><span class="token punctuation">&gt;</span></span>
+</code></pre>
+<h3 id="module-views">Module Views</h3>
+<p>But authoring reusable components is only part of the story. It helps reduce repetition in your view, but it does not fix the problem you see above, which is that the view needs to know a whole lot about the inner structure of the <code>baroptions</code> module.</p>
+<p>That exposes us to the risk of bugs originating far outside the module (so: hard to track down).</p>
+<p>The knowledge of how state and actions are wired into a view, should reside in the same module that defines the state and actions. The module should expose a more simple and &quot;foolproof&quot; access to those view parts.</p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token keyword">export</span> <span class="token keyword">default</span> _ <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>
+    state<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        selected<span class="token punctuation">:</span> <span class="token keyword">null</span><span class="token punctuation">,</span>
+        options<span class="token punctuation">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    actions<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        addOption<span class="token punctuation">:</span> opt <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>options<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>options<span class="token punctuation">:</span> options<span class="token punctuation">.</span><span class="token function">concat</span><span class="token punctuation">(</span>opt<span class="token punctuation">)</span><span class="token punctuation">}</span><span class="token punctuation">)</span>
+        select<span class="token punctuation">:</span> opt <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>selected<span class="token punctuation">:</span> opt<span class="token punctuation">}</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    view<span class="token punctuation">:</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>
+        Banner<span class="token punctuation">:</span> props <span class="token operator">=&gt;</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>h1</span><span class="token punctuation">&gt;</span></span><span class="token punctuation">{</span>props<span class="token punctuation">.</span>name<span class="token punctuation">}</span><span class="token punctuation">:</span> <span class="token punctuation">{</span>state<span class="token punctuation">.</span>selected<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>h1</span><span class="token punctuation">&gt;</span></span><span class="token punctuation">,</span>
+        Input<span class="token punctuation">:</span> _ <span class="token operator">=&gt;</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span>
+            <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>text<span class="token punctuation">&quot;</span></span>
+            <span class="token attr-name">onchange</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>ev <span class="token operator">=&gt;</span> actions<span class="token punctuation">.</span><span class="token function">addOption</span><span class="token punctuation">(</span>ev<span class="token punctuation">.</span>currentTarget<span class="token punctuation">.</span>value<span class="token punctuation">)</span><span class="token punctuation">}</span></span>
+        <span class="token punctuation">/&gt;</span></span><span class="token punctuation">,</span>
+        Selector<span class="token punctuation">:</span> _ <span class="token operator">=&gt;</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>DropDown</span>
+            <span class="token attr-name">selected</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>state<span class="token punctuation">.</span>selected<span class="token punctuation">}</span></span>
+            <span class="token attr-name">select</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>actions<span class="token punctuation">.</span>select<span class="token punctuation">}</span></span>
+            <span class="token attr-name">options</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>state<span class="token punctuation">.</span>options<span class="token punctuation">}</span></span>
+        <span class="token punctuation">/&gt;</span></span>
+    <span class="token punctuation">}</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+<p>This allows the main view to be written in this way:</p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token keyword">import</span> baroptions <span class="token keyword">from</span> <span class="token string">&apos;./baroptions&apos;</span><span class="token punctuation">,</span>
+<span class="token operator">...</span>
+<span class="token keyword">const</span> <span class="token function-variable function">view</span> <span class="token operator">=</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> views <span class="token operator">=</span> <span class="token punctuation">{</span>
+        baroptions<span class="token punctuation">:</span> baroptions<span class="token punctuation">.</span><span class="token function">view</span><span class="token punctuation">(</span>state<span class="token punctuation">.</span>baroptions<span class="token punctuation">,</span> actions<span class="token punctuation">.</span>baroptions<span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+    <span class="token keyword">return</span> <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>main</span><span class="token punctuation">&gt;</span></span>
+        <span class="token operator">...</span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>views.baroptions.Banner</span> <span class="token attr-name">name</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>Bar<span class="token punctuation">&quot;</span></span> <span class="token punctuation">/&gt;</span></span>
+        <span class="token operator">...</span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>views.baroptions.Selector</span> <span class="token punctuation">/&gt;</span></span>
+        <span class="token operator">...</span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>views.baroptions.Input</span> <span class="token punctuation">/&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>main</span><span class="token punctuation">&gt;</span></span>
+
+<span class="token punctuation">}</span>
+</code></pre>
+<h2 id="the-module-pattern">The Module Pattern</h2>
+<p>So now we finally have the pattern of defining a module:</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">export</span> <span class="token keyword">default</span> initialValues <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>
+    state<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token operator">...</span><span class="token punctuation">}</span><span class="token punctuation">,</span>
+    actions<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token operator">...</span><span class="token punctuation">}</span><span class="token punctuation">,</span>
+    view<span class="token punctuation">:</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span><span class="token operator">...</span><span class="token punctuation">}</span><span class="token punctuation">,</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+<p>Simple and sensible, right?!</p>
+<blockquote>
+<p>For singleton-modules which don&apos;t need to be used multiple times with initial values, you can forgo the function-call wrapper, and simply export the object. Note that the main, top-level module of your app will always be a singleton.</p>
+</blockquote>
+<p>A module which composes other modules inside it could look like this.</p>
+<h3 id="composing-modules">Composing modules</h3>
+<pre class="language-jsx"><code class="language-jsx"><span class="token keyword">import</span> foo <span class="token keyword">from</span> <span class="token string">&apos;./foo&apos;</span>
+<span class="token keyword">import</span> bar <span class="token keyword">from</span> <span class="token string">&apos;./bar&apos;</span>
+<span class="token keyword">import</span> baz <span class="token keyword">from</span> <span class="token string">&apos;./baz&apos;</span>
+
+<span class="token keyword">const</span> modules <span class="token operator">=</span> <span class="token punctuation">{</span>
+    foo<span class="token punctuation">:</span> <span class="token function">foo</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+    bar<span class="token punctuation">:</span> <span class="token function">bar</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+    baz<span class="token punctuation">:</span> <span class="token function">baz</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">export</span> <span class="token keyword">default</span> initialValues <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>
+    state<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        foo<span class="token punctuation">:</span> modules<span class="token punctuation">.</span>foo<span class="token punctuation">.</span>state<span class="token punctuation">,</span>
+        bar<span class="token punctuation">:</span> modules<span class="token punctuation">.</span>bar<span class="token punctuation">.</span>state<span class="token punctuation">,</span>
+        baz<span class="token punctuation">:</span> modules<span class="token punctuation">.</span>baz<span class="token punctuation">.</span>state<span class="token punctuation">,</span>
+
+        someProp<span class="token punctuation">:</span> <span class="token string">&apos;A&apos;</span>
+        otherProp<span class="token punctuation">:</span> <span class="token number">42</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+
+    actions<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        foo<span class="token punctuation">:</span> modules<span class="token punctuation">.</span>foo<span class="token punctuation">.</span>actions<span class="token punctuation">,</span>
+        bar<span class="token punctuation">:</span> modules<span class="token punctuation">.</span>bar<span class="token punctuation">.</span>actions<span class="token punctuation">,</span>
+        baz<span class="token punctuation">:</span> modules<span class="token punctuation">.</span>baz<span class="token punctuation">.</span>actions<span class="token punctuation">,</span>
+
+        someAction<span class="token punctuation">:</span> _ <span class="token operator">=&gt;</span> <span class="token punctuation">{</span><span class="token operator">...</span><span class="token punctuation">}</span><span class="token punctuation">,</span>
+        otherAction<span class="token punctuation">:</span> _ <span class="token operator">=&gt;</span> <span class="token punctuation">{</span><span class="token operator">...</span><span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+
+    view<span class="token punctuation">:</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token keyword">const</span> views <span class="token operator">=</span> <span class="token punctuation">{</span>
+            foo<span class="token punctuation">:</span> modules<span class="token punctuation">.</span>foo<span class="token punctuation">.</span><span class="token function">view</span><span class="token punctuation">(</span>state<span class="token punctuation">.</span>foo<span class="token punctuation">,</span> actions<span class="token punctuation">.</span>foo<span class="token punctuation">)</span><span class="token punctuation">,</span>
+            bar<span class="token punctuation">:</span> modules<span class="token punctuation">.</span>bar<span class="token punctuation">.</span><span class="token function">view</span><span class="token punctuation">(</span>state<span class="token punctuation">.</span>bar<span class="token punctuation">,</span> actions<span class="token punctuation">.</span>bar<span class="token punctuation">)</span><span class="token punctuation">,</span>
+            baz<span class="token punctuation">:</span> modules<span class="token punctuation">.</span>baz<span class="token punctuation">.</span><span class="token function">view</span><span class="token punctuation">(</span>state<span class="token punctuation">.</span>baz<span class="token punctuation">,</span> actions<span class="token punctuation">.</span>baz<span class="token punctuation">)</span><span class="token punctuation">,</span>
+        <span class="token punctuation">}</span>
+
+        <span class="token keyword">return</span> <span class="token comment">/* some combination of:
+            - state
+            - actions
+            - views.foo
+            - views.bar
+            - views.baz
+            */</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+<p>It&apos;s simple, clean and explicit. It&apos;s a lot of repetetive typing though. Surely we can write a helper to fix this? ...Of course we can!</p>
+<h2 id="a-module-helper">A Module Helper</h2>
+<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> <span class="token function-variable function">combineModules</span> <span class="token operator">=</span> tree <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> modules <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+
+    <span class="token keyword">for</span> <span class="token punctuation">(</span><span class="token keyword">let</span> name <span class="token keyword">in</span> <span class="token punctuation">(</span>tree<span class="token punctuation">.</span>modules <span class="token operator">||</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        modules<span class="token punctuation">[</span>name<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">combineModules</span><span class="token punctuation">(</span>tree<span class="token punctuation">.</span>modules<span class="token punctuation">[</span>name<span class="token punctuation">]</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">const</span> state <span class="token operator">=</span> tree<span class="token punctuation">.</span>state <span class="token operator">||</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+    <span class="token keyword">const</span> actions <span class="token operator">=</span> tree<span class="token punctuation">.</span>actions <span class="token operator">||</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+
+    <span class="token keyword">for</span> <span class="token punctuation">(</span><span class="token keyword">let</span> name <span class="token keyword">in</span> modules<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        state<span class="token punctuation">[</span>name<span class="token punctuation">]</span> <span class="token operator">=</span> modules<span class="token punctuation">[</span>name<span class="token punctuation">]</span><span class="token punctuation">.</span>state <span class="token operator">||</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+        actions<span class="token punctuation">[</span>name<span class="token punctuation">]</span> <span class="token operator">=</span> modules<span class="token punctuation">[</span>name<span class="token punctuation">]</span><span class="token punctuation">.</span>actions <span class="token operator">||</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">const</span> <span class="token function-variable function">view</span> <span class="token operator">=</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token keyword">const</span> subviews <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+        <span class="token keyword">for</span> <span class="token punctuation">(</span><span class="token keyword">let</span> name <span class="token keyword">in</span> modules<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>modules<span class="token punctuation">[</span>name<span class="token punctuation">]</span><span class="token punctuation">.</span>view<span class="token punctuation">)</span> <span class="token keyword">continue</span>
+            subviews<span class="token punctuation">[</span>name<span class="token punctuation">]</span> <span class="token operator">=</span> modules<span class="token punctuation">[</span>name<span class="token punctuation">]</span><span class="token punctuation">.</span><span class="token function">view</span><span class="token punctuation">(</span>
+                state<span class="token punctuation">[</span>name<span class="token punctuation">]</span><span class="token punctuation">,</span>
+                actions<span class="token punctuation">[</span>name<span class="token punctuation">]</span>
+            <span class="token punctuation">)</span>
+        <span class="token punctuation">}</span>
+        <span class="token keyword">return</span> tree<span class="token punctuation">.</span>view <span class="token operator">&amp;&amp;</span> tree<span class="token punctuation">.</span><span class="token function">view</span><span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">,</span> subviews<span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">return</span> <span class="token punctuation">{</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">,</span> view<span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>This little helper essentially implements the pattern above, in a recursive fashion. It expects a module defined like:</p>
+<pre class="language-jsx"><code class="language-jsx"><span class="token keyword">import</span> foo <span class="token keyword">from</span> <span class="token string">&apos;./foo&apos;</span>
+<span class="token keyword">import</span> bar <span class="token keyword">from</span> <span class="token string">&apos;./bar&apos;</span>
+
+<span class="token keyword">const</span> <span class="token punctuation">{</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">,</span> view<span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token function">combineModules</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+    modules<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        foo<span class="token punctuation">:</span> <span class="token function">foo</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+        bar<span class="token punctuation">:</span> <span class="token function">bar</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    state<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        rootState1<span class="token punctuation">:</span> <span class="token string">&apos;a&apos;</span><span class="token punctuation">,</span>
+        rootState2<span class="token punctuation">:</span> <span class="token number">99</span><span class="token punctuation">,</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    actions<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        rootAction1<span class="token punctuation">:</span> <span class="token operator">...</span>
+        rootAction2<span class="token punctuation">:</span> <span class="token operator">...</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    view<span class="token punctuation">:</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">,</span> views<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>main</span><span class="token punctuation">&gt;</span></span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>section</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>left<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span>
+                <span class="token punctuation">{</span>state<span class="token punctuation">.</span>rootState1<span class="token punctuation">}</span>
+                <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>button</span> <span class="token attr-name">onclick</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>actions<span class="token punctuation">.</span>rootAction1<span class="token punctuation">}</span></span><span class="token punctuation">&gt;</span></span>Boo<span class="token operator">!</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>button</span><span class="token punctuation">&gt;</span></span>
+                <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>views.foo.InputForm</span> <span class="token attr-name">onsubmit</span><span class="token script language-javascript"><span class="token punctuation">=</span><span class="token punctuation">{</span>actions<span class="token punctuation">.</span>rootAction2<span class="token punctuation">}</span></span> <span class="token punctuation">/&gt;</span></span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>section</span><span class="token punctuation">&gt;</span></span>
+            <span class="token operator">&lt;</span>section <span class="token keyword">class</span><span class="token operator">=</span>&quot;toolbar<span class="token operator">&gt;</span>
+                <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>views.foo.ToolbarButton</span> <span class="token punctuation">/&gt;</span></span>
+                <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>views.bar.ToolbarButton</span> <span class="token punctuation">/&gt;</span></span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>section</span><span class="token punctuation">&gt;</span></span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>section</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>main<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span>
+                <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>views.bar.Main</span> <span class="token punctuation">/&gt;</span></span>
+            <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>section</span><span class="token punctuation">&gt;</span></span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>main</span><span class="token punctuation">&gt;</span></span>
+    <span class="token punctuation">)</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+<p><code>foo()</code> and <code>bar()</code> should return module objects of the same shape. Those may in turn include modules of their own. <code>combineModules</code> produces the total <code>state</code> and <code>action</code> trees, as well as the main <code>view</code>, from the provided module-tree.</p>
+<p>The third argument passed to the view, is an object with the keys <code>foo</code> and <code>bar</code>, and the values are the results of calling those modules&apos; respective <code>view</code> functions. The <code>view</code> functions in <code>foo</code> and <code>bar</code>, in turn, recieve the views of <em>their</em> child-modules in the third arguments.</p>
+<p>With the total <code>state</code> and <code>actions</code> trees, plus the main <code>view</code> thus produced, running your app is simply a matter of passing them to <code>app(state, actions, view, document.body)</code></p>
+<p>Tada! -- You&apos;re running a modular Hyperapp app</p>
+<h2 id="testability">Testability</h2>
+<p>Modules using this method make good candidates for unit testing! A unit-test might look something like:</p>
+<pre class="language-js"><code class="language-js"><span class="token function">test</span><span class="token punctuation">(</span><span class="token string">&apos;when foo is set to false, the Bar component renders nothing&apos;</span><span class="token punctuation">,</span> done <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> <span class="token punctuation">{</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">,</span> view <span class="token operator">=</span> <span class="token function">combineModules</span><span class="token punctuation">(</span><span class="token function">myModule</span><span class="token punctuation">(</span><span class="token punctuation">{</span>foo<span class="token punctuation">:</span> <span class="token boolean">true</span><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token function">app</span><span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">,</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>state<span class="token punctuation">.</span>foo<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            actions<span class="token punctuation">.</span><span class="token function">turnFooOff</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+            <span class="token keyword">return</span>
+        <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{</span>
+            <span class="token keyword">const</span> <span class="token punctuation">{</span>Bar<span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token function">view</span><span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span>
+            <span class="token function">assert</span><span class="token punctuation">(</span><span class="token operator">!</span><span class="token function">Bar</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+            <span class="token function">done</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+<blockquote>
+<p>Note: when testing a module with dependencies, you may want to mock them,</p>
+</blockquote>
+<p>Notice the missing 4th parameter to the app call. That&apos;s usually where you tell Hyperapp where in the DOM you&apos;d like your app rendered. When you leave it off, Hyperapp disengages the entire virtual-dom rendering routine, but it will <em>still call the view every update</em> That is how you can test that your module&apos;s &quot;view&quot; responds correctly to actions. </p>
+
+    </article>
+</main>
+</body>  
+</html>

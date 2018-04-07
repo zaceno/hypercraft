@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-113320588-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-113320588-1');
+    </script>
+    <!-- //Google Analytics -->
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <link rel="stylesheet" href="../../assets/prism.css" />
+    <link rel="stylesheet" href="../../assets/site.css" />
+    <title>Initialization - Hypercraft</title>
+    <meta name="keywords" content="hyperapp, javascript, js, tutorial, tips, patterns, initialization, init, startup, convention">
+    <meta name="description" content="A useful convention and pattern for initialization-time side-efffects, such as listening to browser events or subscribing to websockets." />
+  </head>
+  <body>
+    <header>
+      <a class="logo" href="../../index.html">
+        <h1>Hypercraft</h1>
+        <p>Hyperapp tricks, patterns and pitfalls</p>
+      </a>
+      <ul class="nav">
+        <li><a href="../../index.html">Index</a></li>
+        <li><a href="../../about/index.html">About</a></li>
+      </ul>
+    </header>
+    <main>
+    <article>
+      <h1>Initialization</h1>
+      <div class="meta">A useful convention and pattern for initialization-time side-efffects, such as listening to browser events or subscribing to websockets.</div>
+      <p>It is common for an app to need to do &quot;things&quot; at start-up. Things, such as subscribing to websocket-connections, listening to browser-events, make an async fetch-request.</p>
+<p>The callbacks of these operations need to call actions of your app in order to interact with it. Thankfully, <code>app(...)</code> returns your wired actions, so you can hook them up to your callbacks.</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> wiredActions <span class="token operator">=</span> <span class="token function">app</span><span class="token punctuation">(</span><span class="token operator">...</span><span class="token punctuation">)</span>
+
+<span class="token function">fetch</span><span class="token punctuation">(</span><span class="token string">&apos;http://example.com/first_data&apos;</span><span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>data <span class="token operator">=&gt;</span> data<span class="token punctuation">.</span><span class="token function">json</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>data <span class="token operator">=&gt;</span> wiredActions<span class="token punctuation">.</span><span class="token function">loaded</span><span class="token punctuation">(</span>data<span class="token punctuation">)</span><span class="token punctuation">)</span>
+</code></pre>
+<p>This works for main-level initialization. But if you&apos;ve broken up your state/actions in several namespaces, imported from different files (such as I talk about in <a href="https://zaceno.github.com/post/modular-apps/">modularizing apps</a>) - then how do you give each of your modules their own wired actions?</p>
+<p>Hyperapp&apos;s <a href="https://github.com/hyperapp/router">router</a> has the following approach to this:</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">import</span> <span class="token punctuation">{</span> h<span class="token punctuation">,</span> app <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">&quot;hyperapp&quot;</span>
+<span class="token keyword">import</span> <span class="token punctuation">{</span> location <span class="token keyword">as</span> router<span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">&quot;@hyperapp/router&quot;</span>
+<span class="token keyword">const</span> state <span class="token operator">=</span> <span class="token punctuation">{</span>
+    router<span class="token punctuation">:</span> router<span class="token punctuation">.</span>state<span class="token punctuation">,</span>
+    <span class="token operator">...</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token punctuation">{</span>
+    router<span class="token punctuation">:</span> router<span class="token punctuation">.</span>actions<span class="token punctuation">,</span>
+    <span class="token operator">...</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> view <span class="token operator">=</span> <span class="token operator">...</span>
+
+<span class="token keyword">const</span> wiredActions <span class="token operator">=</span> <span class="token function">app</span><span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">,</span> view<span class="token punctuation">,</span> document<span class="token punctuation">.</span>body<span class="token punctuation">)</span>
+
+router<span class="token punctuation">.</span><span class="token function">subscribe</span><span class="token punctuation">(</span>wiredActions<span class="token punctuation">.</span>router<span class="token punctuation">)</span>
+</code></pre>
+<p>Notice how the <code>router</code> has a <code>subscribe</code> function, to which you pass the router-namespace&apos;s actions. This allows the router module to subscribe them to route-change events.</p>
+<p>This works fine for the router, but it doesn&apos;t quite scale if you have multiple modules. Especially if they&apos;re nested several levels deep.</p>
+<p>In my apps, I have often adopted the <em>convention</em> of an <code>init</code> action. As an action, it has access to all the other actions, so I can set them up as callbacks just the same. All that needs to be done after the <code>app(...)</code> call is to call the <code>init()</code> action.</p>
+<pre class="language-js"><code class="language-js">
+<span class="token keyword">const</span> <span class="token punctuation">{</span>init<span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token function">app</span><span class="token punctuation">(</span>
+    <span class="token comment">//STATE</span>
+    <span class="token punctuation">{</span>
+        router<span class="token punctuation">:</span> router<span class="token punctuation">.</span>state<span class="token punctuation">,</span>
+        <span class="token operator">...</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+
+    <span class="token comment">///ACTIONS</span>
+    <span class="token punctuation">{</span>
+        router<span class="token punctuation">:</span> router<span class="token punctuation">.</span>actions<span class="token punctuation">,</span>
+
+        init<span class="token punctuation">:</span> _ <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>_<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+            router<span class="token punctuation">.</span><span class="token function">subscribe</span><span class="token punctuation">(</span>actions<span class="token punctuation">.</span>router<span class="token punctuation">)</span>
+
+            <span class="token function">fetch</span><span class="token punctuation">(</span><span class="token string">&apos;https://example.com/first_data&apos;</span><span class="token punctuation">)</span>
+            <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>data <span class="token operator">=&gt;</span> data<span class="token punctuation">.</span><span class="token function">json</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+            <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>actions<span class="token punctuation">.</span>loadData<span class="token punctuation">)</span>            
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token operator">...</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+
+    <span class="token comment">//VIEW</span>
+    <span class="token operator">...</span><span class="token punctuation">,</span>
+
+    <span class="token comment">//CONTAINER</span>
+    document<span class="token punctuation">.</span>body
+<span class="token punctuation">)</span>
+
+<span class="token function">init</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+</code></pre>
+<p>At this point, it doesn&apos;t look much better than if we&apos;d just done all the initialization after <code>app(...)</code>. But imagine if we had several modules, and each wanted to define their own initialization steps, and bind to their actions (after they&apos;d been wired). Rather than following the example of the router, we could simply initialize the submodules from our top-level init:</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">import</span> foo <span class="token keyword">from</span> <span class="token string">&apos;./foo&apos;</span>
+<span class="token keyword">import</span> bar <span class="token keyword">from</span> <span class="token string">&apos;./bar&apos;</span>
+
+<span class="token keyword">const</span> <span class="token punctuation">{</span>init<span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token function">app</span><span class="token punctuation">(</span>
+    <span class="token comment">//STATE</span>
+    <span class="token punctuation">{</span>
+        foo<span class="token punctuation">:</span> foo<span class="token punctuation">.</span>state<span class="token punctuation">,</span>
+        bar<span class="token punctuation">:</span> bar<span class="token punctuation">.</span>state<span class="token punctuation">,</span>
+        <span class="token operator">...</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+
+    <span class="token comment">//ACTIONS</span>
+    <span class="token punctuation">{</span>
+        foo<span class="token punctuation">:</span> foo<span class="token punctuation">.</span>actions<span class="token punctuation">,</span>
+        bar<span class="token punctuation">:</span> bar<span class="token punctuation">.</span>actions<span class="token punctuation">,</span>
+        init<span class="token punctuation">:</span> _ <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>_<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+            actions<span class="token punctuation">.</span>foo<span class="token punctuation">.</span><span class="token function">init</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+            actions<span class="token punctuation">.</span>bar<span class="token punctuation">.</span><span class="token function">init</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+            <span class="token comment">//top level initializations</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token operator">...</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+
+    <span class="token comment">//VIEW</span>
+    <span class="token operator">...</span><span class="token punctuation">,</span>
+
+    <span class="token comment">//CONTAINER</span>
+    document<span class="token punctuation">.</span>body
+<span class="token punctuation">)</span>
+
+<span class="token function">init</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+</code></pre>
+<p>As long as we stick to the convention of every module having an <code>init</code> action which calls the <code>init()</code> of submodules - then all submodules&apos; initialization will be called at startup. And there&apos;s no need to know <em>how</em> to call them (such as <code>router.subscribe</code>), or what actions they need. </p>
+<p>One thing you perhaps are wondering: when, in the lifecycle of an app, is <code>init()</code> called? </p>
+<p>By the time <code>app(...)</code> returns, it will have wired all the actions (or else how could it return them), but the app will <em>not yet</em> have rendered for the first time. If you want to hold something off until after the first render, wrap it in a <code>setTimeout(..., 0)</code></p>
+
+    </article>
+</main>
+</body>  
+</html>

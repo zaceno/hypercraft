@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-113320588-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-113320588-1');
+    </script>
+    <!-- //Google Analytics -->
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <link rel="stylesheet" href="../../assets/prism.css" />
+    <link rel="stylesheet" href="../../assets/site.css" />
+    <title>Utility Actions - Hypercraft</title>
+    <meta name="keywords" content="hyperapp, javascript, js, tutorial, tips, patterns, actions, setter, reducer">
+    <meta name="description" content="Generic actions and their uses" />
+  </head>
+  <body>
+    <header>
+      <a class="logo" href="../../index.html">
+        <h1>Hypercraft</h1>
+        <p>Hyperapp tricks, patterns and pitfalls</p>
+      </a>
+      <ul class="nav">
+        <li><a href="../../index.html">Index</a></li>
+        <li><a href="../../about/index.html">About</a></li>
+      </ul>
+    </header>
+    <main>
+    <article>
+      <h1>Utility Actions</h1>
+      <div class="meta">Generic actions and their uses</div>
+      <h2 id="generic-setter">Generic setter</h2>
+<p>Complex actions often need to call multiple child actions.</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token punctuation">{</span>
+
+    validate<span class="token punctuation">:</span> _ <span class="token operator">=&gt;</span> state <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>valid<span class="token punctuation">:</span> <span class="token function">validationCheck</span><span class="token punctuation">(</span>state<span class="token punctuation">)</span><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+
+    _setFoo<span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>foo<span class="token punctuation">:</span> x<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+
+    _setBar<span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>bar<span class="token punctuation">:</span> x<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+
+    setFoo<span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        actions<span class="token punctuation">.</span><span class="token function">_setFoo</span><span class="token punctuation">(</span>x<span class="token punctuation">)</span>
+        actions<span class="token punctuation">.</span><span class="token function">validate</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+
+    setBar<span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        actions<span class="token punctuation">.</span><span class="token function">_setBar</span><span class="token punctuation">(</span>x<span class="token punctuation">)</span>
+        actions<span class="token punctuation">.</span><span class="token function">validate</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>The reason code ends up looking like the above, is because an action can only update the state by returning a partial state. So unless you want to repeat your validation code a lot of places, the <code>set...</code> actions need to use a separate action to set the prop, and then call the validation action.</p>
+<p>The above could be made much simpler with a setter:</p>
+<pre class="language-js"><code class="language-js">
+<span class="token keyword">set</span><span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> x
+</code></pre>
+<p>That way, the extra <code>_set...</code> can be replaced simply with:</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token punctuation">{</span>
+
+    <span class="token keyword">set</span><span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> x<span class="token punctuation">,</span>
+
+    validate<span class="token punctuation">:</span> _ <span class="token operator">=&gt;</span> state <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>valid<span class="token punctuation">:</span> <span class="token function">validationCheck</span><span class="token punctuation">(</span>state<span class="token punctuation">)</span><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+
+    setFoo<span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        actions<span class="token punctuation">.</span><span class="token keyword">set</span><span class="token punctuation">(</span><span class="token punctuation">{</span>foo<span class="token punctuation">:</span> x<span class="token punctuation">}</span><span class="token punctuation">)</span>
+        actions<span class="token punctuation">.</span><span class="token function">validate</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+
+    setBar<span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        actions<span class="token punctuation">.</span><span class="token keyword">set</span><span class="token punctuation">(</span><span class="token punctuation">{</span>bar<span class="token punctuation">:</span> x<span class="token punctuation">}</span><span class="token punctuation">)</span>
+        actions<span class="token punctuation">.</span><span class="token function">validate</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<h2 id="generic-reducer">Generic reducer</h2>
+<p>The <code>set</code> functions like above are also useful in actions that perform async operations such
+as fetch:</p>
+<pre class="language-js"><code class="language-js">
+fetchData<span class="token punctuation">:</span> id <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token function">fetch</span><span class="token punctuation">(</span><span class="token template-string"><span class="token string">`http://example.com/data/</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>id<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">`</span></span><span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>res <span class="token operator">=&gt;</span> res<span class="token punctuation">.</span><span class="token function">json</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>data <span class="token operator">=&gt;</span> actions<span class="token punctuation">.</span><span class="token keyword">set</span><span class="token punctuation">(</span><span class="token punctuation">{</span>data<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>...but what if the resulting data we wish to set depends on the current state?</p>
+<p>We might try:</p>
+<pre class="language-js"><code class="language-js">
+fetchData<span class="token punctuation">:</span> id <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token function">fetch</span><span class="token punctuation">(</span><span class="token template-string"><span class="token string">`http://example.com/data/</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>id<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">`</span></span><span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>res <span class="token operator">=&gt;</span> res<span class="token punctuation">.</span><span class="token function">json</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>data <span class="token operator">=&gt;</span> actions<span class="token punctuation">.</span><span class="token keyword">set</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+        data<span class="token punctuation">:</span> state<span class="token punctuation">.</span>data <span class="token operator">+</span> data
+    <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>...but because the fetch is async, the state we have <em>may be old</em>! Setting the result in this way would overwrite any changes to <code>state.data</code> that happened while we were 
+waiting for the request to finish.</p>
+<p>Since you alway get the latest state when you call an action, the simple solution is
+<em>not</em> to set data directly in <code>.then()</code> but to set it in an action:</p>
+<pre class="language-js"><code class="language-js">
+didFetchData<span class="token punctuation">:</span> data <span class="token operator">=&gt;</span> state <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>data<span class="token punctuation">:</span> state<span class="token punctuation">.</span>data <span class="token operator">+</span> data<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+
+fetchData<span class="token punctuation">:</span> id <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token function">fetch</span><span class="token punctuation">(</span><span class="token template-string"><span class="token string">`http://example.com/data/</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>id<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">`</span></span><span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>res <span class="token operator">=&gt;</span> res<span class="token punctuation">.</span><span class="token function">json</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>actions<span class="token punctuation">.</span>didFetchData<span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>However this means you need to create a <code>didFetchFoo</code> action to correspond with every
+<code>fetchFoo</code>.</p>
+<p>A more ergonomical solution would be to use a <em>generic reducer action</em> such as this:</p>
+<pre class="language-js"><code class="language-js">
+reduce<span class="token punctuation">:</span> fn <span class="token operator">=&gt;</span> state <span class="token operator">=&gt;</span> <span class="token function">fn</span><span class="token punctuation">(</span>state<span class="token punctuation">)</span><span class="token punctuation">,</span>
+
+fetchData<span class="token punctuation">:</span> id <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token function">fetch</span><span class="token punctuation">(</span><span class="token template-string"><span class="token string">`http://example.com/data/</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>id<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">`</span></span><span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>res <span class="token operator">=&gt;</span> res<span class="token punctuation">.</span><span class="token function">json</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>data <span class="token operator">=&gt;</span> actions<span class="token punctuation">.</span><span class="token function">reduce</span><span class="token punctuation">(</span>state <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        data<span class="token punctuation">:</span> state<span class="token punctuation">.</span>data <span class="token operator">+</span> data
+    <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>Incidentally, a generic reducer could also be used to simplify the non-async validation example above, as such:</p>
+<pre class="language-js"><code class="language-js"><span class="token keyword">const</span> actions <span class="token operator">=</span> <span class="token punctuation">{</span>
+
+    <span class="token keyword">set</span><span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> x<span class="token punctuation">,</span>
+    reduce<span class="token punctuation">:</span> fn <span class="token operator">=&gt;</span> state <span class="token operator">=&gt;</span> <span class="token function">fn</span><span class="token punctuation">(</span>state<span class="token punctuation">)</span>
+
+    validate<span class="token punctuation">:</span> props <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        actions<span class="token punctuation">.</span><span class="token keyword">set</span><span class="token punctuation">(</span>props<span class="token punctuation">)</span>
+        actions<span class="token punctuation">.</span><span class="token function">reduce</span><span class="token punctuation">(</span>state <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+            valid<span class="token punctuation">:</span> <span class="token function">validationCheck</span><span class="token punctuation">(</span>state<span class="token punctuation">)</span>
+        <span class="token punctuation">}</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span>
+
+    setFoo<span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> actions<span class="token punctuation">.</span><span class="token function">validate</span><span class="token punctuation">(</span><span class="token punctuation">{</span>foo<span class="token punctuation">:</span> x<span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+    setBar<span class="token punctuation">:</span> x <span class="token operator">=&gt;</span> <span class="token punctuation">(</span>state<span class="token punctuation">,</span> actions<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> actions<span class="token punctuation">.</span><span class="token function">validate</span><span class="token punctuation">(</span><span class="token punctuation">{</span>bar<span class="token punctuation">:</span> x<span class="token punctuation">}</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>(wether or not that&apos;s really simpler is subjective, perhaps)</p>
+<h2 id="the-problem-of-scope">The problem of scope</h2>
+<p>The annoying thing about using utility functions such as these, are that actions are only able to call actions from within their branch of the action tree. So you can&apos;t make single <code>set</code> and <code>reduce</code> actions at the top of the tree and hope to call them from any action lower down. You need to replicate them at every level you want to use them.</p>
+<p>This is an example of the more general problem of  composing actions from different branches of the action tree (like: &quot;when x happens here, that makes y happen over there&quot;). There should be some nice simple solution to it, but I haven&apos;t found it yet. I will be exploring this more in the future.</p>
+
+    </article>
+</main>
+</body>  
+</html>
